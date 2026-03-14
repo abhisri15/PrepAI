@@ -4,12 +4,7 @@ Uses TF-IDF cosine similarity fallback (no external deps).
 FAISS optional if faiss-cpu installed.
 """
 import json
-import os
 from pathlib import Path
-
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 import logging
 logger = logging.getLogger("prepai")
@@ -40,14 +35,14 @@ def load_chunks() -> list[dict]:
     _ensure_data_dir()
     if not CHUNKS_FILE.exists():
         return []
-    with open(CHUNKS_FILE, "r") as f:
+    with open(CHUNKS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def save_chunks(chunks: list[dict]):
     """Persist chunks to disk."""
     _ensure_data_dir()
-    with open(CHUNKS_FILE, "w") as f:
+    with open(CHUNKS_FILE, "w", encoding="utf-8") as f:
         json.dump(chunks, f, indent=2)
 
 
@@ -58,7 +53,6 @@ def add_document(doc_id: str, text: str, metadata: dict = None):
     """
     chunks = load_chunks()
     new_chunks = _chunk_text(text)
-    start = len(chunks)
     for i, c in enumerate(new_chunks):
         chunks.append({
             "id": f"{doc_id}_{i}",
@@ -67,7 +61,7 @@ def add_document(doc_id: str, text: str, metadata: dict = None):
             "metadata": metadata or {},
         })
     save_chunks(chunks)
-    logger.info(f"Added document {doc_id}: {len(new_chunks)} chunks")
+    logger.info("Added document %s: %d chunks", doc_id, len(new_chunks))
     return len(new_chunks)
 
 
@@ -80,16 +74,21 @@ def retrieve(query: str, top_k: int = 3) -> list[dict]:
     if not chunks:
         return []
 
-    texts = [c["text"] for c in chunks]
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
+    # Import heavy ML deps lazily so app startup stays fast and robust in cloud runtimes.
     try:
-        tfidf = vectorizer.fit_transform(texts)
-    except Exception:
-        return []
+        import numpy as np
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
 
-    q_vec = vectorizer.transform([query])
-    sims = cosine_similarity(q_vec, tfidf).flatten()
-    indices = np.argsort(sims)[::-1][:top_k]
+        texts = [c["text"] for c in chunks]
+        vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
+        tfidf = vectorizer.fit_transform(texts)
+        q_vec = vectorizer.transform([query])
+        sims = cosine_similarity(q_vec, tfidf).flatten()
+        indices = np.argsort(sims)[::-1][:top_k]
+    except (ImportError, ValueError, TypeError) as e:
+        logger.warning("TF-IDF retrieval unavailable, using lexical fallback: %s", e)
+        return _fallback_retrieve(query, chunks, top_k=top_k)
 
     results = []
     for i in indices:
@@ -99,6 +98,36 @@ def retrieve(query: str, top_k: int = 3) -> list[dict]:
                 "metadata": chunks[i].get("metadata", {}),
                 "score": float(sims[i]),
             })
+    return results
+
+
+def _fallback_retrieve(query: str, chunks: list[dict], top_k: int = 3) -> list[dict]:
+    """Simple lexical fallback when sklearn/scipy is unavailable."""
+    terms = [t for t in query.lower().split() if t]
+    if not terms:
+        return []
+
+    results = []
+    for c in chunks:
+        text = (c.get("text") or "").lower()
+        score = sum(text.count(term) for term in terms)
+        if score > 0:
+            results.append({
+                "text": c.get("text", ""),
+                "metadata": c.get("metadata", {}),
+                "score": float(score),
+            })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    results = results[:top_k]
+
+    if not results:
+        return []
+
+    max_score = max(r["score"] for r in results) or 1.0
+    for r in results:
+        r["score"] = float(r["score"] / max_score)
+
     return results
 
 

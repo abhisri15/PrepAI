@@ -43,9 +43,11 @@ n8n at prepai.app.n8n.cloud cannot reach localhost. Deploy backend to **Render**
 4. Settings:
    - **Root Directory:** `backend`
    - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
-5. **Create Web Service**  
-6. Copy your service URL (e.g. `https://prepai-backend-xxxx.onrender.com`)
+   - **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT`
+5. Add environment variable:
+   - **PYTHON_VERSION=3.11.0**
+6. **Create Web Service**  
+7. Copy your service URL (e.g. `https://prepai-backend-xxxx.onrender.com`)
 
 ---
 

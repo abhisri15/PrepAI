@@ -39,6 +39,12 @@ app.register_blueprint(fetch_jd_bp)
 app.register_blueprint(n8n_submit_bp)
 
 
+@app.route("/")
+def index():
+    """Basic root endpoint so platform HTTP probes get a fast 200 response."""
+    return {"service": "PrepAI", "status": "ok"}
+
+
 @app.route("/health")
 def health():
     """Health check for frontend and monitoring."""
@@ -52,5 +58,5 @@ def health():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=os.getenv("DEBUG", "true").lower() == "true")
