@@ -55,10 +55,28 @@ Backend runs at `http://localhost:5000`
 ```bash
 cd frontend
 npm install
+# Optional for local frontend against deployed services:
+# copy .env.example .env
 npm run dev
 ```
 
 Frontend runs at `http://localhost:5173`
+
+### Local Frontend Against Deployed Services
+
+If you want to run only the frontend locally while using the deployed backend and n8n webhooks, create `frontend/.env` with:
+
+```bash
+VITE_API_BASE_URL=https://prepai-nytf.onrender.com
+VITE_N8N_WEBHOOK_BASE_URL=https://prepai.app.n8n.cloud/webhook
+VITE_USE_N8N_PROXY=true
+```
+
+With that setup:
+
+- Ask / Evaluate / Instant Prep use n8n webhooks when available
+- Upload and JD fetch go to the deployed backend
+- Full guide via email posts directly to the n8n `prepai-submit` webhook
 
 ### Default Configuration
 

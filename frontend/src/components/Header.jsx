@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 
-const API_BASE = '/api'
+import { health as fetchHealth } from '../api'
 
 export default function Header({ health, setHealth }) {
   useEffect(() => {
-    fetch('/health')
-      .then((r) => r.json())
+    fetchHealth()
       .then(setHealth)
       .catch(() => setHealth({ status: 'error', provider: 'unknown' }))
   }, [setHealth])

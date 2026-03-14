@@ -44,7 +44,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5000/api/fetch-jd",
+        "url": "https://prepai-nytf.onrender.com/api/fetch-jd",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\"jd_url\":\"{{ $('Webhook').item.json.jd_url }}\"}",
