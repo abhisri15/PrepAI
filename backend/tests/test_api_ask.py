@@ -1,10 +1,12 @@
 """Tests for /api/ask endpoint."""
+import os
 import pytest
 from app import app
 
 
 @pytest.fixture
 def client():
+    os.environ["LLM_PROVIDER"] = "mock"
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c

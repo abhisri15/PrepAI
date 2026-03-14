@@ -1,30 +1,33 @@
-# InterviewPrepAssistant (PrepAI)
+# PrepAI
 
-A production-quality, demo-ready AI-powered interview preparation assistant with clean architecture, full-stack development, and workflow orchestration.
+PrepAI is now intentionally simplified to two product flows:
 
-## Architecture Overview
+1. Submit resume + JD + email to get a detailed prep guide by email via n8n.
+2. Ask follow-up interview questions using a stored Gemini-generated summary of that resume and JD.
+
+## Architecture
 
 ```
 User
   |
-React Frontend (Vite + TailwindCSS)
+React Frontend
   |
 Flask Backend
+  |-- /api/prep-guide -> stores profile context -> forwards normalized payload to n8n webhook
+  |-- /api/ask -> uses stored Gemini summary + optional retrieval context
   |
-+ AI Provider Layer (OpenAI | Anthropic | Gemini | Mock)
-+ Vector Retriever (FAISS/TF-IDF)
-+ n8n Webhook Integration
+Local Storage (JSON files)
+  |
+n8n Workflow -> Interview Guide Classifier and Notifier -> Email
 ```
 
-## Tech Stack
+## Core Behavior
 
-- **Frontend**: React + Vite, TailwindCSS
-- **Backend**: Python Flask
-- **AI**: OpenAI, Anthropic, Google Gemini, Mock (default, works offline)
-- **Vector Retrieval**: FAISS or TF-IDF cosine fallback
-- **Storage**: SQLite / JSON files
-- **Workflow**: n8n
-- **Testing**: pytest
+- Prep Guide form accepts name, email, role, resume text or file, JD URL or JD text.
+- Backend fetches JD text from the URL if needed.
+- Backend generates and stores a Gemini summary in the background.
+- Backend forwards the normalized payload to the webhook version of `Interview Prep Assistant (Form Submission)`.
+- Ask uses the stored summary to answer questions specifically for that user profile.
 
 ## Quick Start
 
@@ -48,6 +51,15 @@ cp .env.example .env
 python app.py
 ```
 
+Recommended `backend/.env` for local use:
+
+```bash
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-1.5-flash
+GOOGLE_API_KEY=your_local_gemini_key
+N8N_FORM_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/prepai-form-submit
+```
+
 Backend runs at `http://localhost:5000`
 
 ### Frontend Setup
@@ -55,80 +67,34 @@ Backend runs at `http://localhost:5000`
 ```bash
 cd frontend
 npm install
-# Optional for local frontend against deployed services:
-# copy .env.example .env
 npm run dev
 ```
 
 Frontend runs at `http://localhost:5173`
 
-### Local Frontend Against Deployed Services
-
-If you want to run only the frontend locally while using the deployed backend and n8n webhooks, create `frontend/.env` with:
+Frontend `.env`:
 
 ```bash
-VITE_API_BASE_URL=https://prepai-nytf.onrender.com
-VITE_N8N_WEBHOOK_BASE_URL=https://prepai.app.n8n.cloud/webhook
-VITE_USE_N8N_PROXY=true
+VITE_API_BASE_URL=http://localhost:5000
 ```
-
-With that setup:
-
-- Ask / Evaluate / Instant Prep use n8n webhooks when available
-- Upload and JD fetch go to the deployed backend
-- Full guide via email posts directly to the n8n `prepai-submit` webhook
-
-### Default Configuration
-
-- **LLM_PROVIDER=auto** — Uses OpenAI, Anthropic, or Gemini automatically when matching API keys are configured; otherwise falls back to mock
-- To force a provider, set `LLM_PROVIDER=openai` (or `anthropic` / `gemini`) and add the corresponding API key
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /health | Health check, model info |
-| POST | /api/ask | AI interview Q&A |
-| POST | /api/evaluate | Evaluate candidate answer |
-| POST | /api/prepare | Resume + JD → Preparation roadmap |
-| POST | /api/upload | Upload documents for RAG |
-| POST | /api/feedback | Store feedback |
-| POST | /api/fetch-jd | Fetch job description text from URL |
-| POST | /api/n8n/submit | Proxy to n8n webhook (full guide flow) |
-| POST | /api/webhook | n8n workflow webhook (legacy) |
+| POST | /api/prep-guide | Submit profile, store summary context, trigger email guide workflow |
+| POST | /api/ask | Ask profile-aware interview questions |
+| GET | /api/profile/:id | Get stored summary state |
 
 ## n8n Workflows
 
-### Full Prep Guide Flow (Resume + JD → Email)
+Required workflows:
 
-1. **Interview Guide Classifier and Notifier** – Classifies candidate (fresher/mid/senior), generates tailored guide, emails via Gmail
-2. **Interview Prep Assistant (Form Submission)** – Form + AI qualification, calls Classifier workflow (uses Relevance AI for JD URL)
-3. **PrepAI Webhook Entry** – Webhook entry that uses PrepAI backend to fetch JD from URL; no external services
+1. `Interview Guide Classifier and Notifier`
+2. `Interview Prep Assistant (Form Submission)` now converted to webhook trigger at `/webhook/prepai-form-submit`
 
-**Import order:** Classifier first → Form or PrepAI Webhook Entry. See `n8n/README.md` for setup.
-
-**Prep tab:** Use "Full guide via email" to submit via our backend → n8n. Set `N8N_PREPAI_WEBHOOK_URL` in backend `.env`.
-
-### n8n-Only Mode (UI -> n8n directly)
-
-For fully migrated behavior where Ask/Evaluate/Prep/Full-guide are handled by n8n webhooks directly:
-
-Create `frontend/.env`:
-
-```bash
-VITE_USE_N8N_PROXY=true
-VITE_N8N_ONLY_MODE=true
-
-# Preferred: set explicit production webhook URLs copied from n8n UI
-VITE_N8N_ASK_WEBHOOK_URL=https://your-n8n-host/webhook/prepai-webhook
-VITE_N8N_PREPARE_WEBHOOK_URL=https://your-n8n-host/webhook/resume-to-questions
-VITE_N8N_SUBMIT_WEBHOOK_URL=https://your-n8n-host/webhook/prepai-submit
-
-# Keep backend base only for /health, /upload, /fetch-jd
-VITE_API_BASE_URL=https://prepai-nytf.onrender.com
-```
-
-Important: the workflow `Interview Prep Assistant (Form Submission)` is a `formTrigger` workflow and is meant for n8n-hosted form pages, not direct UI JSON POST requests.
+The frontend never posts directly to n8n. The backend handles webhook forwarding after normalizing JD text.
 
 ## Run Commands
 
@@ -149,33 +115,13 @@ npm run dev
 
 Backend: http://localhost:5000 | Frontend: http://localhost:5173
 
-## n8n Webhook curl Example
+## Example Flow
 
-```bash
-# Ask flow
-curl -X POST http://localhost:5000/api/webhook \
-  -H "Content-Type: application/json" \
-  -d '{"action":"ask","question":"What is REST?"}'
-
-# Evaluate flow
-curl -X POST http://localhost:5000/api/webhook \
-  -H "Content-Type: application/json" \
-  -d '{"action":"evaluate","question":"What is REST?","candidate_answer":"REST is an API style."}'
-
-# Prepare flow
-curl -X POST http://localhost:5000/api/webhook \
-  -H "Content-Type: application/json" \
-  -d '{"action":"prepare","resume_text":"...","jd_text":"..."}'
-```
-
-## 3-Minute Demo Script
-
-1. **Open UI** — Navigate to http://localhost:5173
-2. **Ask tab** — Ask an interview question; show AI response
-3. **Prompt Viewer** — Toggle "Show prompt" to reveal the exact prompt sent to the model
-4. **Backend logs** — Show structured logging (requests, prompts, latency) in the backend terminal
-5. **Provider abstraction** — Open `backend/services/llm_provider.py` and explain Mock/OpenAI/Anthropic/Gemini design
-6. **Architecture** — Walk through: Frontend → Flask API → AI Provider Layer → n8n webhook
+1. Open the UI.
+2. Submit the Prep Guide form.
+3. UI shows: `Detailed prep guide will be sent via email. Please prepare accordingly.`
+4. Backend stores the profile summary in the background.
+5. Open Ask and ask questions tailored to your profile.
 
 ## Project Structure
 

@@ -9,6 +9,7 @@ from services.prompt_templates import build_ask_prompt
 from services.retriever import get_context_for_query
 from services.security import redact_pii
 from utils.logging import log_request, log_prompt, logger
+from models import get_profile_context
 
 bp = Blueprint("ask", __name__)
 
@@ -30,6 +31,16 @@ def ask():
 
     # Use provided context or retrieve from vector store
     retrieved_context = context_override or get_context_for_query(question, top_k=3)
+
+    # Add persisted user profile summary to personalize answers.
+    profile = get_profile_context(user_id)
+    profile_summary = (profile.get("summary_context") or profile.get("summary") or "").strip()
+    if profile_summary:
+        retrieved_context = (
+            f"User profile summary:\n{profile_summary}\n\n{retrieved_context}"
+            if retrieved_context
+            else f"User profile summary:\n{profile_summary}"
+        )
 
     system, user_prompt = build_ask_prompt(question, retrieved_context)
     log_prompt(f"{system[:100]}... {user_prompt[:200]}")

@@ -36,7 +36,7 @@ def _get_gemini():
     if _gemini_model is None:
         import google.generativeai as genai
         genai.configure(api_key=os.getenv("GOOGLE_API_KEY", ""))
-        _gemini_model = genai.GenerativeModel(os.getenv("LLM_MODEL", "gemini-pro"))
+        _gemini_model = genai.GenerativeModel(os.getenv("LLM_MODEL", "gemini-1.5-flash"))
     return _gemini_model
 
 

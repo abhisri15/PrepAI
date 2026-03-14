@@ -1,10 +1,12 @@
 """
 /api/prepare - Resume + JD → Preparation roadmap.
 """
+import os
 import time
 from flask import Blueprint, request, jsonify
 
 from services.llm_provider import get_provider, generate_json
+from services.n8n_client import post_webhook
 from services.prompt_templates import build_prep_prompt
 from services.security import redact_pii
 from utils.logging import log_request, log_prompt, logger
@@ -31,7 +33,16 @@ def prepare():
     log_prompt(full_prompt[:300])
 
     try:
-        result = generate_json(full_prompt, system=system, temperature=0.7, max_tokens=1024)
+        roadmap_webhook_url = os.getenv("N8N_ROADMAP_WEBHOOK_URL", "").strip()
+        if roadmap_webhook_url:
+            result = post_webhook(roadmap_webhook_url, {
+                "resume": resume_text,
+                "resume_text": resume_text,
+                "jd": jd_text,
+                "jd_text": jd_text,
+            })
+        else:
+            result = generate_json(full_prompt, system=system, temperature=0.7, max_tokens=1024)
         def to_list(x):
             if isinstance(x, list):
                 return x

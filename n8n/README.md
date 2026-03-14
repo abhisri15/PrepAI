@@ -1,73 +1,59 @@
 # PrepAI n8n Workflows
 
-## Overview
+PrepAI now uses a minimal n8n setup.
 
-PrepAI uses n8n for the full interview prep flow: resume + JD → seniority classification → tailored guide → email delivery.
+## Required Workflows
 
-## Workflow Architecture
+1. **Interview Guide Classifier and Notifier**
+2. **Interview Prep Assistant (Form Submission)**
 
+## Flow
+
+```text
+Frontend -> Flask /api/prep-guide -> n8n webhook /webhook/prepai-form-submit -> Execute Classifier Workflow -> email user
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Entry Points                                                    │
-│  • Form (Interview Prep Assistant)                               │
-│  • Webhook (PrepAI Webhook Entry)                                │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Interview Guide Classifier and Notifier                         │
-│  • Classify: fresher | mid_level | senior                        │
-│  • Generate guide (Fresher / Mid-Level / Senior prompts)         │
-│  • Send email via Gmail                                          │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+The backend already normalizes the input before calling n8n:
+
+- resume is plain text
+- JD URL is fetched and converted to JD text if necessary
+- webhook payload is JSON
+
+So the n8n workflow only needs to:
+
+1. receive webhook JSON
+2. map fields
+3. execute `Interview Guide Classifier and Notifier`
+4. return a JSON acknowledgement
 
 ## Import Order
 
-1. **Interview Guide Classifier and Notifier** (child) – import first  
-2. **Interview Prep Assistant (Form Submission)** – form + AI qualification  
-3. **PrepAI Webhook Entry** – webhook + PrepAI backend integration  
+1. Import **Interview Guide Classifier and Notifier** first.
+2. Import **Interview Prep Assistant (Form Submission)** second.
+3. Open `Execute Classifier Workflow` in the second workflow and re-link it to `Interview Guide Classifier and Notifier`.
 
-After importing PrepAI Webhook Entry, open the **Execute Classifier Workflow** node and select the **Interview Guide Classifier and Notifier** workflow.
+## Webhook Endpoint
 
-## PrepAI Webhook Entry
+`Interview Prep Assistant (Form Submission)` now exposes:
 
-- **Path:** `/webhook/prepai-submit`
-- **Method:** POST
-- **Body:** `{ name, email, role, jd_url?, jd_text?, resume, additional_notes? }`
+`/webhook/prepai-form-submit`
 
-If `jd_url` is provided, the workflow calls PrepAI backend `/api/fetch-jd` to fetch JD text. Otherwise it uses `jd_text` directly.
+Expected JSON body:
 
-### Backend Configuration
-
-Add to `backend/.env`:
-
+```json
+{
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "role": "Software Engineer",
+    "resume": "full resume text",
+    "jd_text": "full job description text",
+    "additional_notes": "optional"
+}
 ```
-N8N_PREPAI_WEBHOOK_URL=http://localhost:5678/webhook/prepai-submit
-```
-
-Use your n8n base URL. For n8n cloud or remote: `https://your-n8n.example.com/webhook/prepai-submit`
-
-### Fetch JD Backend URL
-
-In PrepAI Webhook Entry, the **Fetch JD** node calls `http://localhost:5000/api/fetch-jd`. If your Flask backend runs elsewhere, edit that node’s URL (e.g. `http://host.docker.internal:5000` when n8n runs in Docker).
-
-## Form Workflow (Interview Prep Assistant)
-
-Uses **Relevance AI** to fetch job description from a URL. You must configure the Relevance AI API URL in the HTTP Request node.  
-Alternatively, use **PrepAI Webhook Entry**, which uses the PrepAI backend for JD fetching.
-
-The `Interview Prep Assistant (Form Submission)` workflow starts with `formTrigger`. This means:
-
-- It works from n8n form links.
-- It is not intended to receive direct JSON payloads from the frontend app.
-- For app UI integration, use webhook workflows (`prepai-webhook`, `resume-to-questions`, `prepai-submit`).
 
 ## Credentials
 
-On import, n8n will prompt for:
+Set these on n8n after import:
 
-- **OpenAI API** – for classification and guide generation  
-- **Gmail OAuth2** – for sending the prep guide  
-
-Re-select your credentials in each node after import.
+1. OpenAI API credential on the classifier workflow nodes
+2. Gmail OAuth2 credential on the email nodes

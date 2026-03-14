@@ -1,39 +1,8 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
-const N8N_BASE = (import.meta.env.VITE_N8N_WEBHOOK_BASE_URL || '').replace(/\/$/, '')
-
-const N8N_ASK_URL = import.meta.env.VITE_N8N_ASK_WEBHOOK_URL || ''
-const N8N_PREPARE_URL = import.meta.env.VITE_N8N_PREPARE_WEBHOOK_URL || ''
-const N8N_SUBMIT_URL = import.meta.env.VITE_N8N_SUBMIT_WEBHOOK_URL || ''
-
-const USE_N8N_PROXY = import.meta.env.VITE_USE_N8N_PROXY === 'true'
-const N8N_ONLY_MODE = import.meta.env.VITE_N8N_ONLY_MODE === 'true'
-
-function buildUrl(base, path) {
-  if (!base) return path
-  return `${base}${path}`
-}
 
 function apiUrl(path) {
-  return buildUrl(API_BASE, path)
-}
-
-function n8nUrl(path) {
-  return buildUrl(N8N_BASE, path)
-}
-
-function getAskEndpoint() {
-  if (N8N_ASK_URL) return N8N_ASK_URL
-  return n8nUrl('/prepai-webhook')
-}
-
-function getPrepareEndpoint() {
-  if (N8N_PREPARE_URL) return N8N_PREPARE_URL
-  return n8nUrl('/resume-to-questions')
-}
-
-function getSubmitEndpoint() {
-  if (N8N_SUBMIT_URL) return N8N_SUBMIT_URL
-  return n8nUrl('/prepai-submit')
+  if (!API_BASE) return path
+  return `${API_BASE}${path}`
 }
 
 async function parseError(r) {
@@ -47,10 +16,6 @@ async function parseError(r) {
   } catch {
     return text || `Request failed: ${r.status}`
   }
-}
-
-function looksLikeBackendHealth(data) {
-  return data && data.service === 'PrepAI' && data.status === 'ok'
 }
 
 function extractJsonFromText(text) {
@@ -112,21 +77,23 @@ async function postJson(url, body) {
   }
 }
 
-async function postWithFallback({ primaryUrl, primaryBody, fallbackUrl, fallbackBody, isValid }) {
+async function postForm(url, formData) {
+  const r = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!r.ok) throw new Error(await parseError(r))
+  const text = await r.text()
+  if (!text.trim()) {
+    throw new Error('Received an empty response from the service.')
+  }
+
   try {
-    const data = await postJson(primaryUrl, primaryBody)
-    if (looksLikeBackendHealth(data) || (isValid && !isValid(data))) {
-      if (!fallbackUrl) {
-        throw new Error('Primary webhook did not return expected payload.')
-      }
-      return postJson(fallbackUrl, fallbackBody)
-    }
-    return data
-  } catch (error) {
-    if (!fallbackUrl) {
-      throw error
-    }
-    return postJson(fallbackUrl, fallbackBody)
+    return unwrapN8nResponse(JSON.parse(text))
+  } catch {
+    const parsed = extractJsonFromText(text)
+    if (parsed) return unwrapN8nResponse(parsed)
+    throw new Error('Received an invalid JSON response from the service.')
   }
 }
 
@@ -137,80 +104,42 @@ export async function health() {
 }
 
 export async function ask({ question, context = '', user_id = 'anonymous' }) {
-  if (USE_N8N_PROXY && (N8N_BASE || N8N_ASK_URL)) {
-    const primaryUrl = getAskEndpoint()
-    const fallbackUrl = !N8N_ONLY_MODE && API_BASE ? apiUrl('/api/ask') : ''
-    return postWithFallback({
-      primaryUrl,
-      primaryBody: { action: 'ask', question, context, user_id },
-      fallbackUrl,
-      fallbackBody: { question, context, user_id },
-      isValid: (data) => typeof data?.answer === 'string',
-    })
+  return postJson(apiUrl('/api/ask'), { question, context, user_id })
+}
+
+export async function initProfileFlow(payload) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_BASE_URL is required for profile flow orchestration.')
+  }
+  if (payload instanceof FormData) {
+    return postForm(apiUrl('/api/profile/init'), payload)
+  }
+  return postJson(apiUrl('/api/prep-guide'), payload)
+}
+
+export async function getProfile(profileId) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_BASE_URL is required to fetch profile context.')
+  }
+  const r = await fetch(apiUrl(`/api/profile/${encodeURIComponent(profileId)}`))
+  if (!r.ok) throw new Error(await parseError(r))
+  return r.json()
+}
+
+export async function upload(input, doc_id, options = {}) {
+  if (input instanceof File) {
+    const formData = new FormData()
+    formData.append('file', input)
+    if (doc_id) formData.append('doc_id', doc_id)
+    if (options.profile_id) formData.append('profile_id', options.profile_id)
+    if (options.source) formData.append('source', options.source)
+    return postForm(apiUrl('/api/upload'), formData)
   }
 
-  return postJson(USE_N8N_PROXY && N8N_BASE ? n8nUrl('/prepai-webhook') : apiUrl('/api/ask'),
-    USE_N8N_PROXY && N8N_BASE ? { action: 'ask', question, context, user_id } : { question, context, user_id })
-}
-
-export async function evaluate({ question, candidate_answer }) {
-  if (USE_N8N_PROXY && (N8N_BASE || N8N_ASK_URL)) {
-    const primaryUrl = getAskEndpoint()
-    const fallbackUrl = !N8N_ONLY_MODE && API_BASE ? apiUrl('/api/evaluate') : ''
-    return postWithFallback({
-      primaryUrl,
-      primaryBody: { action: 'evaluate', question, candidate_answer },
-      fallbackUrl,
-      fallbackBody: { question, candidate_answer },
-      isValid: (data) => typeof data?.score !== 'undefined',
-    })
-  }
-
-  return postJson(USE_N8N_PROXY && N8N_BASE ? n8nUrl('/prepai-webhook') : apiUrl('/api/evaluate'),
-    USE_N8N_PROXY && N8N_BASE ? { action: 'evaluate', question, candidate_answer } : { question, candidate_answer })
-}
-
-export async function prepare({ resume_text, jd_text }) {
-  if (USE_N8N_PROXY && (N8N_BASE || N8N_PREPARE_URL || N8N_ASK_URL)) {
-    const primaryUrl = getPrepareEndpoint() || getAskEndpoint()
-    const primaryBody = N8N_PREPARE_URL || N8N_BASE
-      ? { resume: resume_text, jd: jd_text }
-      : { action: 'prepare', resume_text, jd_text }
-    const fallbackUrl = !N8N_ONLY_MODE && API_BASE ? apiUrl('/api/prepare') : ''
-    return postWithFallback({
-      primaryUrl,
-      primaryBody,
-      fallbackUrl,
-      fallbackBody: { resume_text, jd_text },
-      isValid: (data) => Array.isArray(data?.strengths) || Array.isArray(data?.key_topics),
-    })
-  }
-
-  return postJson(USE_N8N_PROXY && N8N_BASE ? n8nUrl('/resume-to-questions') : apiUrl('/api/prepare'),
-    USE_N8N_PROXY && N8N_BASE ? { resume: resume_text, jd: jd_text } : { resume_text, jd_text })
-}
-
-export async function fetchJd(jd_url) {
-  return postJson(apiUrl('/api/fetch-jd'), { jd_url })
-}
-
-export async function submitToN8n({ name, email, role, jd_url, jd_text, resume, additional_notes }) {
-  const body = { name, email, role, jd_url, jd_text, resume, additional_notes }
-
-  if (N8N_BASE || N8N_SUBMIT_URL) {
-    const fallbackUrl = !N8N_ONLY_MODE && API_BASE ? apiUrl('/api/n8n/submit') : ''
-    return postWithFallback({
-      primaryUrl: getSubmitEndpoint(),
-      primaryBody: body,
-      fallbackUrl,
-      fallbackBody: body,
-      isValid: (data) => typeof data?.message === 'string' || data?.status === 'accepted',
-    })
-  }
-
-  return postJson(N8N_BASE ? n8nUrl('/prepai-submit') : apiUrl('/api/n8n/submit'), body)
-}
-
-export async function upload(text, doc_id) {
-  return postJson(apiUrl('/api/upload'), { text, doc_id })
+  return postJson(apiUrl('/api/upload'), {
+    text: input,
+    doc_id,
+    profile_id: options.profile_id,
+    source: options.source,
+  })
 }

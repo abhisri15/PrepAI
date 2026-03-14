@@ -17,6 +17,7 @@ from api.feedback import bp as feedback_bp
 from api.webhook import bp as webhook_bp
 from api.fetch_jd import bp as fetch_jd_bp
 from api.n8n_submit import bp as n8n_submit_bp
+from api.profile import bp as profile_bp
 from services.llm_provider import get_provider
 
 # Load env from project root or backend dir
@@ -37,6 +38,7 @@ app.register_blueprint(feedback_bp)
 app.register_blueprint(webhook_bp)
 app.register_blueprint(fetch_jd_bp)
 app.register_blueprint(n8n_submit_bp)
+app.register_blueprint(profile_bp)
 
 
 @app.route("/")

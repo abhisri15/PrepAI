@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { prepare, fetchJd, submitToN8n } from '../api'
+import { initProfileFlow } from '../api'
 
 export default function Prep() {
-  const [mode, setMode] = useState('instant')
+  const [resumeFile, setResumeFile] = useState(null)
   const [resume, setResume] = useState('')
   const [jd, setJd] = useState('')
   const [jdUrl, setJdUrl] = useState('')
@@ -10,52 +10,41 @@ export default function Prep() {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('')
   const [notes, setNotes] = useState('')
-  const [result, setResult] = useState(null)
-  const [n8nMessage, setN8nMessage] = useState(null)
+  const [statusMessage, setStatusMessage] = useState('')
+  const [profileId, setProfileId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleInstant = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setResult(null)
+    setStatusMessage('')
     setLoading(true)
     try {
-      let jdText = jd
-      if (jdUrl.trim()) {
-        const { jd_text } = await fetchJd(jdUrl.trim())
-        jdText = jd_text
+      if (!resume.trim() && !resumeFile) {
+        throw new Error('Paste resume text or upload a resume file')
       }
-      if (!jdText && !jdUrl) {
-        throw new Error('Paste job description or provide JD URL')
-      }
-      const data = await prepare({ resume_text: resume, jd_text: jdText })
-      setResult(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const handleN8n = async (e) => {
-    e.preventDefault()
-    setError('')
-    setN8nMessage(null)
-    setLoading(true)
-    try {
-      const payload = {
-        name,
-        email,
-        role: role || 'Software Engineer',
-        resume,
-        additional_notes: notes,
+      if (!jd.trim() && !jdUrl.trim()) {
+        throw new Error('Provide a job description URL or paste JD text')
       }
-      if (jdUrl.trim()) payload.jd_url = jdUrl.trim()
-      else if (jd.trim()) payload.jd_text = jd
-      else throw new Error('Provide job description URL or paste JD text')
-      const data = await submitToN8n(payload)
-      setN8nMessage(data.message || 'Check your email for the full guide!')
+
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('email', email)
+      formData.append('role', role || 'Software Engineer')
+      formData.append('additional_notes', notes)
+      if (jdUrl.trim()) formData.append('jd_url', jdUrl.trim())
+      if (jd.trim()) formData.append('jd_text', jd.trim())
+      if (resume.trim()) formData.append('resume_text', resume.trim())
+      if (resumeFile) formData.append('resume_file', resumeFile)
+
+      const data = await initProfileFlow(formData)
+      setProfileId(data.profile_id || '')
+      if (data.profile_id) {
+        localStorage.setItem('prepaiProfileId', data.profile_id)
+      }
+      setStatusMessage(data.message || 'Detailed prep guide will be sent via email. Please prepare accordingly.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -66,70 +55,11 @@ export default function Prep() {
   return (
     <div className="max-w-2xl">
       <h2 className="text-lg font-semibold text-slate-200 mb-4">Prep Guide</h2>
-      <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => { setMode('instant'); setError(''); setResult(null); setN8nMessage(null) }}
-          className={`px-4 py-2 rounded-lg ${mode === 'instant' ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-400'}`}
-        >
-          Instant roadmap
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMode('n8n'); setError(''); setResult(null); setN8nMessage(null) }}
-          className={`px-4 py-2 rounded-lg ${mode === 'n8n' ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-400'}`}
-        >
-          Full guide via email
-        </button>
-      </div>
       <p className="text-slate-500 text-sm mb-4">
-        {mode === 'instant'
-          ? 'Paste resume and job description (or JD URL) for a quick roadmap.'
-          : 'Submit for a detailed, seniority-based guide sent to your email (requires n8n).'}
+        Submit your profile once. We will send a detailed prep guide to your email and also store a summary so Ask can answer using your resume and JD context.
       </p>
 
-      {mode === 'instant' && (
-        <form onSubmit={handleInstant} className="space-y-4">
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Resume</label>
-            <textarea
-              value={resume}
-              onChange={(e) => setResume(e.target.value)}
-              placeholder="Paste your resume..."
-              className="w-full h-32 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Job description URL (optional)</label>
-            <input
-              value={jdUrl}
-              onChange={(e) => setJdUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Job description text (or leave empty if using URL)</label>
-            <textarea
-              value={jd}
-              onChange={(e) => setJd(e.target.value)}
-              placeholder="Paste job description..."
-              className="w-full h-24 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || (!jd.trim() && !jdUrl.trim())}
-            className="px-6 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium hover:bg-amber-400 disabled:opacity-50"
-          >
-            {loading ? 'Generating...' : 'Generate roadmap'}
-          </button>
-        </form>
-      )}
-
-      {mode === 'n8n' && (
-        <form onSubmit={handleN8n} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-slate-400 mb-1">Your name</label>
             <input
@@ -161,17 +91,25 @@ export default function Prep() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Resume</label>
+            <label className="block text-sm text-slate-400 mb-1">Resume text</label>
             <textarea
               value={resume}
               onChange={(e) => setResume(e.target.value)}
-              placeholder="Paste your resume..."
+              placeholder="Paste your resume here, or upload a file below..."
               className="w-full h-28 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
-              required
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Job description URL (preferred)</label>
+            <label className="block text-sm text-slate-400 mb-1">Resume file (txt, pdf, docx)</label>
+            <input
+              type="file"
+              accept=".txt,.pdf,.docx"
+              onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Job description URL</label>
             <input
               value={jdUrl}
               onChange={(e) => setJdUrl(e.target.value)}
@@ -180,11 +118,11 @@ export default function Prep() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Or paste job description</label>
+            <label className="block text-sm text-slate-400 mb-1">Or paste job description text</label>
             <textarea
               value={jd}
               onChange={(e) => setJd(e.target.value)}
-              placeholder="If no URL..."
+              placeholder="If you already have JD text, paste it here..."
               className="w-full h-20 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
             />
           </div>
@@ -199,45 +137,25 @@ export default function Prep() {
           </div>
           <button
             type="submit"
-            disabled={loading || (!jd.trim() && !jdUrl.trim())}
+            disabled={loading}
             className="px-6 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium hover:bg-amber-400 disabled:opacity-50"
           >
-            {loading ? 'Submitting...' : 'Get guide via email'}
+            {loading ? 'Submitting...' : 'Submit And Email Guide'}
           </button>
-        </form>
-      )}
+      </form>
 
       {error && (
         <div className="mt-4 p-4 rounded-xl bg-rose-500/10 text-rose-400">{error}</div>
       )}
 
-      {n8nMessage && (
-        <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 text-emerald-400">{n8nMessage}</div>
-      )}
-
-      {result && (
-        <div className="mt-6 space-y-4">
-          <Section title="Strengths" items={result.strengths} />
-          <Section title="Weaknesses" items={result.weaknesses} />
-          <Section title="Key Topics" items={result.key_topics} />
-          <Section title="Practice Questions" items={result.practice_questions} />
-          <Section title="Study Plan" items={result.study_plan} />
+      {statusMessage && (
+        <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 text-emerald-400">
+          <div>{statusMessage}</div>
+          {profileId && (
+            <div className="mt-2 text-sm text-emerald-300">Profile stored for Ask with id: {profileId}</div>
+          )}
         </div>
       )}
-    </div>
-  )
-}
-
-function Section({ title, items }) {
-  if (!items?.length) return null
-  return (
-    <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700">
-      <div className="text-xs text-slate-500 uppercase mb-2">{title}</div>
-      <ul className="list-disc list-inside text-slate-300 space-y-1">
-        {items.map((i, k) => (
-          <li key={k}>{i}</li>
-        ))}
-      </ul>
     </div>
   )
 }
