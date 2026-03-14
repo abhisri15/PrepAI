@@ -170,6 +170,7 @@ class GeminiProvider(BaseLLMProvider):
 
 
 _PROVIDERS = {
+    "auto": MockProvider,
     "mock": MockProvider,
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
@@ -177,9 +178,22 @@ _PROVIDERS = {
 }
 
 
+def _resolve_provider_name() -> str:
+    configured = (os.getenv("LLM_PROVIDER") or "auto").lower().strip()
+    if configured == "auto":
+        if os.getenv("OPENAI_API_KEY", "").strip():
+            return "openai"
+        if os.getenv("ANTHROPIC_API_KEY", "").strip():
+            return "anthropic"
+        if os.getenv("GOOGLE_API_KEY", "").strip():
+            return "gemini"
+        return "mock"
+    return configured
+
+
 def get_provider() -> BaseLLMProvider:
     """Factory: returns provider based on LLM_PROVIDER env."""
-    name = (os.getenv("LLM_PROVIDER") or "mock").lower()
+    name = _resolve_provider_name()
     if name not in _PROVIDERS:
         return MockProvider()
     return _PROVIDERS[name]()

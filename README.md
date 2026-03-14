@@ -80,8 +80,8 @@ With that setup:
 
 ### Default Configuration
 
-- **LLM_PROVIDER=mock** — Works offline, deterministic responses
-- Set `LLM_PROVIDER=openai` (or anthropic/gemini) and add API keys for real AI
+- **LLM_PROVIDER=auto** — Uses OpenAI, Anthropic, or Gemini automatically when matching API keys are configured; otherwise falls back to mock
+- To force a provider, set `LLM_PROVIDER=openai` (or `anthropic` / `gemini`) and add the corresponding API key
 
 ## API Endpoints
 

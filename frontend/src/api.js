@@ -17,6 +17,9 @@ function n8nUrl(path) {
 
 async function parseError(r) {
   const text = await r.text()
+  if (!text.trim()) {
+    return `Request failed: ${r.status}`
+  }
   try {
     const data = JSON.parse(text)
     return data.error || data.message || text || `Request failed: ${r.status}`
@@ -36,7 +39,16 @@ async function postJson(url, body) {
     body: JSON.stringify(body),
   })
   if (!r.ok) throw new Error(await parseError(r))
-  return r.json()
+  const text = await r.text()
+  if (!text.trim()) {
+    throw new Error('Received an empty response from the service.')
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error('Received an invalid JSON response from the service.')
+  }
 }
 
 async function postWithFallback({ primaryUrl, primaryBody, fallbackUrl, fallbackBody, isValid }) {

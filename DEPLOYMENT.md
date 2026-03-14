@@ -46,8 +46,13 @@ n8n at prepai.app.n8n.cloud cannot reach localhost. Deploy backend to **Render**
    - **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT`
 5. Add environment variable:
    - **PYTHON_VERSION=3.11.0**
+   - **LLM_PROVIDER=auto**
+   - **OPENAI_API_KEY=<your key>** or **GOOGLE_API_KEY=<your key>** or **ANTHROPIC_API_KEY=<your key>**
+   - **N8N_PREPAI_WEBHOOK_URL=<your real n8n webhook URL for prepai-submit>**
 6. **Create Web Service**  
 7. Copy your service URL (e.g. `https://prepai-backend-xxxx.onrender.com`)
+
+With `LLM_PROVIDER=auto`, the backend will automatically use OpenAI, Anthropic, or Gemini when the corresponding API key is present. If no provider key is set, it falls back to `mock`.
 
 ---
 
