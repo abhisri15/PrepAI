@@ -1,0 +1,16 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+data/chunks.json
+data/uploads/
+data/feedback.json

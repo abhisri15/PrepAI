@@ -1,0 +1,139 @@
+{
+  "name": "PrepAI Interview Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prepai-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "prepai-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "action",
+              "value": "={{ $json.body.action || 'ask' }}"
+            },
+            {
+              "name": "question",
+              "value": "={{ $json.body.question || $json.body.query || '' }}"
+            },
+            {
+              "name": "candidate_answer",
+              "value": "={{ $json.body.candidate_answer || $json.body.answer || '' }}"
+            },
+            {
+              "name": "resume_text",
+              "value": "={{ $json.body.resume_text || $json.body.resume || '' }}"
+            },
+            {
+              "name": "jd_text",
+              "value": "={{ $json.body.jd_text || $json.body.job_description || $json.body.jd || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-node",
+      "name": "Set Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/webhook",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "={{ $json.action }}"
+            },
+            {
+              "name": "question",
+              "value": "={{ $json.question }}"
+            },
+            {
+              "name": "candidate_answer",
+              "value": "={{ $json.candidate_answer }}"
+            },
+            {
+              "name": "resume_text",
+              "value": "={{ $json.resume_text }}"
+            },
+            {
+              "name": "jd_text",
+              "value": "={{ $json.jd_text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-request",
+      "name": "HTTP Request to PrepAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Payload": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request to PrepAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request to PrepAI": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
