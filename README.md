@@ -109,6 +109,27 @@ With that setup:
 
 **Prep tab:** Use "Full guide via email" to submit via our backend → n8n. Set `N8N_PREPAI_WEBHOOK_URL` in backend `.env`.
 
+### n8n-Only Mode (UI -> n8n directly)
+
+For fully migrated behavior where Ask/Evaluate/Prep/Full-guide are handled by n8n webhooks directly:
+
+Create `frontend/.env`:
+
+```bash
+VITE_USE_N8N_PROXY=true
+VITE_N8N_ONLY_MODE=true
+
+# Preferred: set explicit production webhook URLs copied from n8n UI
+VITE_N8N_ASK_WEBHOOK_URL=https://your-n8n-host/webhook/prepai-webhook
+VITE_N8N_PREPARE_WEBHOOK_URL=https://your-n8n-host/webhook/resume-to-questions
+VITE_N8N_SUBMIT_WEBHOOK_URL=https://your-n8n-host/webhook/prepai-submit
+
+# Keep backend base only for /health, /upload, /fetch-jd
+VITE_API_BASE_URL=https://prepai-nytf.onrender.com
+```
+
+Important: the workflow `Interview Prep Assistant (Form Submission)` is a `formTrigger` workflow and is meant for n8n-hosted form pages, not direct UI JSON POST requests.
+
 ## Run Commands
 
 ```bash

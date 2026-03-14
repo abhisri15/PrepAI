@@ -16,30 +16,25 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://prepai-nytf.onrender.com/api/webhook",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
             {
-              "name": "action",
-              "value": "prepare"
-            },
-            {
-              "name": "resume_text",
-              "value": "={{ $json.body.resume || $json.body.resume_text || '' }}"
-            },
-            {
-              "name": "jd_text",
-              "value": "={{ $json.body.jd || $json.body.jd_text || $json.body.job_description || '' }}"
+              "content": "=You are PrepAI preparation planner. Return ONLY valid JSON and no markdown.\n\nResume: {{$json.body.resume || $json.body.resume_text || ''}}\nJob Description: {{$json.body.jd || $json.body.jd_text || $json.body.job_description || ''}}\n\nReturn exactly this schema:\n{\"strengths\": string[], \"weaknesses\": string[], \"key_topics\": string[], \"practice_questions\": string[], \"study_plan\": string[]}"
             }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "http",
-      "name": "PrepAI Prepare",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
+      "name": "Generate Prep Plan",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
       "position": [450, 300]
     },
     {

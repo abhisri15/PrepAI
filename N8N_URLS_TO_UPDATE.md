@@ -12,8 +12,8 @@ Current deployed backend:
 | Workflow | Node Name | Change |
 |----------|-----------|--------|
 | **PrepAI Webhook Entry** | Fetch JD (PrepAI Backend) | `http://localhost:5000/api/fetch-jd` → `https://prepai-nytf.onrender.com/api/fetch-jd` |
-| **PrepAI Candidate Resume to Questions** | PrepAI Prepare | `http://localhost:5000/api/webhook` → `https://prepai-nytf.onrender.com/api/webhook` |
-| **PrepAI Interview Assistant** | HTTP Request to PrepAI | `http://localhost:5000/api/webhook` → `https://prepai-nytf.onrender.com/api/webhook` |
+| **PrepAI Candidate Resume to Questions** | Generate Prep Plan | Uses n8n OpenAI directly (no PrepAI backend URL needed) |
+| **PrepAI Interview Assistant** | Generate Response | Uses n8n OpenAI directly (no PrepAI backend URL needed) |
 
 ## Execute Workflow Links (re-select)
 

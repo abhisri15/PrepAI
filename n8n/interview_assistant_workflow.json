@@ -51,39 +51,25 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://prepai-nytf.onrender.com/api/webhook",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
             {
-              "name": "action",
-              "value": "={{ $json.action }}"
-            },
-            {
-              "name": "question",
-              "value": "={{ $json.question }}"
-            },
-            {
-              "name": "candidate_answer",
-              "value": "={{ $json.candidate_answer }}"
-            },
-            {
-              "name": "resume_text",
-              "value": "={{ $json.resume_text }}"
-            },
-            {
-              "name": "jd_text",
-              "value": "={{ $json.jd_text }}"
+              "content": "=You are PrepAI Interview Assistant. Return ONLY valid JSON and no markdown.\n\nAction: {{$json.action}}\nQuestion: {{$json.question}}\nCandidate Answer: {{$json.candidate_answer}}\nResume: {{$json.resume_text}}\nJob Description: {{$json.jd_text}}\n\nIf action is ask, return: {\"answer\": string, \"improvements\": string[], \"confidence\": number 0..1, \"sources\": string[]}\nIf action is evaluate, return: {\"score\": number 0..10, \"rationale\": string, \"improvements\": string[], \"confidence\": number 0..1}\nIf action is prepare, return: {\"strengths\": string[], \"weaknesses\": string[], \"key_topics\": string[], \"practice_questions\": string[], \"study_plan\": string[]}"
             }
           ]
         },
         "options": {}
       },
       "id": "http-request",
-      "name": "HTTP Request to PrepAI",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
+      "name": "Generate Response",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
       "position": [650, 300]
     },
     {

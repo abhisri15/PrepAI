@@ -57,6 +57,12 @@ In PrepAI Webhook Entry, the **Fetch JD** node calls `http://localhost:5000/api/
 Uses **Relevance AI** to fetch job description from a URL. You must configure the Relevance AI API URL in the HTTP Request node.  
 Alternatively, use **PrepAI Webhook Entry**, which uses the PrepAI backend for JD fetching.
 
+The `Interview Prep Assistant (Form Submission)` workflow starts with `formTrigger`. This means:
+
+- It works from n8n form links.
+- It is not intended to receive direct JSON payloads from the frontend app.
+- For app UI integration, use webhook workflows (`prepai-webhook`, `resume-to-questions`, `prepai-submit`).
+
 ## Credentials
 
 On import, n8n will prompt for:
