@@ -75,11 +75,21 @@ Frontend runs at `http://localhost:5173`
 | POST | /api/prepare | Resume + JD → Preparation roadmap |
 | POST | /api/upload | Upload documents for RAG |
 | POST | /api/feedback | Store feedback |
-| POST | /api/webhook | n8n workflow webhook (unchanged) |
+| POST | /api/fetch-jd | Fetch job description text from URL |
+| POST | /api/n8n/submit | Proxy to n8n webhook (full guide flow) |
+| POST | /api/webhook | n8n workflow webhook (legacy) |
 
-## n8n Workflow
+## n8n Workflows
 
-Import `n8n/interview_assistant_workflow.json` into n8n. The webhook at `/api/webhook` accepts the existing payload format. Do not modify the workflow logic.
+### Full Prep Guide Flow (Resume + JD → Email)
+
+1. **Interview Guide Classifier and Notifier** – Classifies candidate (fresher/mid/senior), generates tailored guide, emails via Gmail
+2. **Interview Prep Assistant (Form Submission)** – Form + AI qualification, calls Classifier workflow (uses Relevance AI for JD URL)
+3. **PrepAI Webhook Entry** – Webhook entry that uses PrepAI backend to fetch JD from URL; no external services
+
+**Import order:** Classifier first → Form or PrepAI Webhook Entry. See `n8n/README.md` for setup.
+
+**Prep tab:** Use "Full guide via email" to submit via our backend → n8n. Set `N8N_PREPAI_WEBHOOK_URL` in backend `.env`.
 
 ## Run Commands
 

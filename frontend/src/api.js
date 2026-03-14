@@ -39,6 +39,29 @@ export async function prepare({ resume_text, jd_text }) {
   return r.json()
 }
 
+export async function fetchJd(jd_url) {
+  const r = await fetch(`${BASE}/api/fetch-jd`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jd_url }),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function submitToN8n({ name, email, role, jd_url, jd_text, resume, additional_notes }) {
+  const r = await fetch(`${BASE}/api/n8n/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, role, jd_url, jd_text, resume, additional_notes }),
+  })
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}))
+    throw new Error(err.error || err.message || `Request failed: ${r.status}`)
+  }
+  return r.json()
+}
+
 export async function upload(text, doc_id) {
   const r = await fetch(`${BASE}/api/upload`, {
     method: 'POST',

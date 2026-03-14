@@ -15,6 +15,8 @@ from api.prepare import bp as prepare_bp
 from api.upload import bp as upload_bp
 from api.feedback import bp as feedback_bp
 from api.webhook import bp as webhook_bp
+from api.fetch_jd import bp as fetch_jd_bp
+from api.n8n_submit import bp as n8n_submit_bp
 from services.llm_provider import get_provider
 
 # Load env from project root or backend dir
@@ -25,7 +27,7 @@ for p in (root / ".env", Path(__file__).parent / ".env"):
         break
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
+CORS(app, origins=["*"])
 
 app.register_blueprint(ask_bp)
 app.register_blueprint(evaluate_bp)
@@ -33,6 +35,8 @@ app.register_blueprint(prepare_bp)
 app.register_blueprint(upload_bp)
 app.register_blueprint(feedback_bp)
 app.register_blueprint(webhook_bp)
+app.register_blueprint(fetch_jd_bp)
+app.register_blueprint(n8n_submit_bp)
 
 
 @app.route("/health")
