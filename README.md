@@ -81,14 +81,52 @@ Frontend runs at `http://localhost:5173`
 
 Import `n8n/interview_assistant_workflow.json` into n8n. The webhook at `/api/webhook` accepts the existing payload format. Do not modify the workflow logic.
 
+## Run Commands
+
+```bash
+# Terminal 1 - Backend
+cd backend
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Linux/Mac
+pip install -r requirements.txt
+python app.py
+
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Backend: http://localhost:5000 | Frontend: http://localhost:5173
+
+## n8n Webhook curl Example
+
+```bash
+# Ask flow
+curl -X POST http://localhost:5000/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"action":"ask","question":"What is REST?"}'
+
+# Evaluate flow
+curl -X POST http://localhost:5000/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"action":"evaluate","question":"What is REST?","candidate_answer":"REST is an API style."}'
+
+# Prepare flow
+curl -X POST http://localhost:5000/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"action":"prepare","resume_text":"...","jd_text":"..."}'
+```
+
 ## 3-Minute Demo Script
 
 1. **Open UI** — Navigate to http://localhost:5173
 2. **Ask tab** — Ask an interview question; show AI response
-3. **Prompt Viewer** — Toggle to reveal the exact prompt sent to the model
-4. **Backend logs** — Show structured logging (requests, prompts, latency)
-5. **Provider abstraction** — Open `backend/services/llm_provider.py` and explain the design
-6. **Architecture** — Walk through the flow: Frontend → Backend → AI Provider
+3. **Prompt Viewer** — Toggle "Show prompt" to reveal the exact prompt sent to the model
+4. **Backend logs** — Show structured logging (requests, prompts, latency) in the backend terminal
+5. **Provider abstraction** — Open `backend/services/llm_provider.py` and explain Mock/OpenAI/Anthropic/Gemini design
+6. **Architecture** — Walk through: Frontend → Flask API → AI Provider Layer → n8n webhook
 
 ## Project Structure
 
