@@ -56,8 +56,8 @@ Recommended `backend/.env` for local use:
 ```bash
 LLM_PROVIDER=gemini
 LLM_MODEL=gemini-1.5-flash
-GOOGLE_API_KEY=your_local_gemini_key
-N8N_FORM_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/prepai-form-submit
+GOOGLE_API_KEY=your_gemini_api_key
+N8N_PREPAI_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/interview-prep
 ```
 
 Backend runs at `http://localhost:5000`
@@ -92,7 +92,7 @@ VITE_API_BASE_URL=http://localhost:5000
 Required workflows:
 
 1. `Interview Guide Classifier and Notifier`
-2. `Interview Prep Assistant (Form Submission)` now converted to webhook trigger at `/webhook/prepai-form-submit`
+2. `Interview Prep Assistant (Form Submission)` — webhook at `/webhook/interview-prep` (production: `https://prepai.app.n8n.cloud/webhook/interview-prep`)
 
 The frontend never posts directly to n8n. The backend handles webhook forwarding after normalizing JD text.
 
@@ -117,11 +117,11 @@ Backend: http://localhost:5000 | Frontend: http://localhost:5173
 
 ## Example Flow
 
-1. Open the UI.
-2. Submit the Prep Guide form.
-3. UI shows: `Detailed prep guide will be sent via email. Please prepare accordingly.`
-4. Backend stores the profile summary in the background.
-5. Open Ask and ask questions tailored to your profile.
+1. **Prep Guide (home):** Enter name, email, role, resume (paste or upload file), JD link (or paste), and optional notes. Submit.
+2. Backend sends data to the n8n webhook; n8n processes and emails you a full prep guide if qualified.
+3. UI shows: *Full prep guide will be sent via email. You can use Ask to get personalized answers for this role in the meantime.*
+4. Backend stores the profile with **company name** (from JD URL/text) and runs a **Gemini summary** of resume + JD in the background (saved locally).
+5. **Ask:** Open Ask, select the profile (e.g. "Intuit — ML Engineer") from the dropdown, then ask interview questions. Answers use the stored Gemini summary for that profile.
 
 ## Project Structure
 

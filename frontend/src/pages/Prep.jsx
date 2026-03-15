@@ -22,11 +22,11 @@ export default function Prep() {
     setLoading(true)
     try {
       if (!resume.trim() && !resumeFile) {
-        throw new Error('Paste resume text or upload a resume file')
+        throw new Error('Provide resume as file or paste text (your choice)')
       }
 
       if (!jd.trim() && !jdUrl.trim()) {
-        throw new Error('Provide a job description URL or paste JD text')
+        throw new Error('Provide job description as URL or paste text (your choice)')
       }
 
       const formData = new FormData()
@@ -43,8 +43,13 @@ export default function Prep() {
       setProfileId(data.profile_id || '')
       if (data.profile_id) {
         localStorage.setItem('prepaiProfileId', data.profile_id)
+        const companyName = data.company_name || 'Company'
+        const roleLabel = data.role || role || 'Software Engineer'
+        const list = JSON.parse(localStorage.getItem('prepaiProfiles') || '[]')
+        list.push({ id: data.profile_id, companyName, role: roleLabel })
+        localStorage.setItem('prepaiProfiles', JSON.stringify(list))
       }
-      setStatusMessage(data.message || 'Detailed prep guide will be sent via email. Please prepare accordingly.')
+      setStatusMessage(data.message || 'Full prep guide will be sent via email. You can use Ask to get personalized answers for this role in the meantime.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -91,40 +96,36 @@ export default function Prep() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Resume text</label>
-            <textarea
-              value={resume}
-              onChange={(e) => setResume(e.target.value)}
-              placeholder="Paste your resume here, or upload a file below..."
-              className="w-full h-28 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Resume file (txt, pdf, docx)</label>
+            <label className="block text-sm text-slate-400 mb-1">Resume — file or text (your choice)</label>
             <input
               type="file"
               accept=".txt,.pdf,.docx"
               onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300"
+              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 mb-2"
             />
+            <textarea
+              value={resume}
+              onChange={(e) => setResume(e.target.value)}
+              placeholder="Or paste your resume text here..."
+              className="w-full h-28 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
+            />
+            <p className="text-xs text-slate-500 mt-1">Provide either a file (txt, pdf, docx) or paste text. Backend will use file content if both are provided.</p>
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Job description URL</label>
+            <label className="block text-sm text-slate-400 mb-1">Job description — URL or text (your choice)</label>
             <input
               value={jdUrl}
               onChange={(e) => setJdUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100"
+              placeholder="Paste JD URL (e.g. https://...)"
+              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 mb-2"
             />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Or paste job description text</label>
             <textarea
               value={jd}
               onChange={(e) => setJd(e.target.value)}
-              placeholder="If you already have JD text, paste it here..."
+              placeholder="Or paste job description text here..."
               className="w-full h-20 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500"
             />
+            <p className="text-xs text-slate-500 mt-1">Provide either a link or pasted JD text. Backend will fetch from URL if given, else use pasted text.</p>
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1">Additional notes</label>
@@ -152,7 +153,9 @@ export default function Prep() {
         <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 text-emerald-400">
           <div>{statusMessage}</div>
           {profileId && (
-            <div className="mt-2 text-sm text-emerald-300">Profile stored for Ask with id: {profileId}</div>
+            <div className="mt-2 text-sm text-emerald-300">
+              Profile saved. Open <strong>Ask</strong> and select this role to get personalized interview answers.
+            </div>
           )}
         </div>
       )}

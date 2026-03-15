@@ -70,17 +70,28 @@ Also re-link **Execute Workflow** in PrepAI Webhook Entry and Interview Prep Ass
 
 ---
 
-## Step 5: Backend .env (optional)
+## Step 5: Backend env (Render)
 
-For Prep tab "Full guide via email":
+In Render dashboard → your **prepai-backend** service → **Environment**:
 
-```
-N8N_PREPAI_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/prepai-submit
-```
+- `GOOGLE_API_KEY` — your Gemini API key (for resume+JD summary and Ask answers)
+- `N8N_PREPAI_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/interview-prep`
+- `LLM_PROVIDER=gemini` (or `auto` if you use multiple keys)
 
 ---
 
-## Step 6: Test
+## Step 6: n8n webhook path
 
-- **Form:** https://prepai.app.n8n.cloud/form/b6603404-e2a5-4b50-b5e9-3c88eb753f2f
-- **PrepAI Webhook Entry:** `POST https://prepai.app.n8n.cloud/webhook/prepai-submit` with JSON body (name, email, role, jd_url, resume)
+The **Interview Prep Assistant (Form Submission)** workflow must use webhook path **interview-prep** so the full URL is:
+
+`https://prepai.app.n8n.cloud/webhook/interview-prep`
+
+Import the updated workflow from `n8n/Interview Prep Assistant (Form Submission).json` if needed.
+
+---
+
+## Step 7: Test
+
+1. Open your deployed frontend (or local with `VITE_API_BASE_URL` pointing to Render backend).
+2. **Prep Guide:** Submit name, email, role, resume (text or file), JD link. You should see success and an email if n8n is configured.
+3. **Ask:** Select the saved profile (e.g. "Intuit — ML Engineer") and ask an interview question; answer should use the stored summary.

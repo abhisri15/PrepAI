@@ -36,7 +36,7 @@
         -800,
         208
       ],
-      "id": "090b4367-ebc7-4cf9-ae30-d890963e6a80",
+      "id": "eac8509f-541b-4a05-8ccc-add28e05c26e",
       "name": "When Executed by Another Workflow"
     },
     {
@@ -117,9 +117,9 @@
       "typeVersion": 3.2,
       "position": [
         -224,
-        208
+        192
       ],
-      "id": "200c9ba1-3e5f-4cdb-8744-285a32df2e89",
+      "id": "708015c2-534d-41ef-a855-ed76752fa28c",
       "name": "Switch"
     },
     {
@@ -135,7 +135,7 @@
         592,
         0
       ],
-      "id": "4969a5e6-165c-450d-b119-b99170e48954",
+      "id": "a7946b4b-5e94-4985-98f4-c75b3b860cf8",
       "name": "Fresher",
       "webhookId": "f9b43dff-fd9e-40f7-8234-642072b15131",
       "credentials": {
@@ -157,7 +157,7 @@
         368,
         0
       ],
-      "id": "ac78b61f-47ec-4034-80a7-a0bc21382087",
+      "id": "d9132aca-a0ed-4d69-9094-358d7e0e499d",
       "name": "Markdown"
     },
     {
@@ -172,7 +172,7 @@
         368,
         208
       ],
-      "id": "14e541eb-d859-428d-a6cf-74a2474163cb",
+      "id": "a601527a-f94e-413f-bcbe-f866abb41e4b",
       "name": "Markdown1"
     },
     {
@@ -187,7 +187,7 @@
         368,
         400
       ],
-      "id": "bdb189e4-f835-4168-8a1a-1aa7f56d8031",
+      "id": "13c9e546-45f2-494c-b3fe-54f478a50352",
       "name": "Markdown2"
     },
     {
@@ -203,7 +203,7 @@
         592,
         208
       ],
-      "id": "4551e568-ca4b-4d84-9de0-a9112d342112",
+      "id": "344cd7e1-4fc6-407a-b44e-4659868905d0",
       "name": "Mid-Level",
       "webhookId": "f9b43dff-fd9e-40f7-8234-642072b15131",
       "credentials": {
@@ -226,7 +226,7 @@
         592,
         400
       ],
-      "id": "5d141845-3642-4ceb-b5ae-d64f265de5c0",
+      "id": "0fc0d7b4-d694-4309-9a8d-f4c851dc54b3",
       "name": "Senior",
       "webhookId": "f9b43dff-fd9e-40f7-8234-642072b15131",
       "credentials": {
@@ -259,7 +259,7 @@
         0,
         0
       ],
-      "id": "d58d7e33-0354-4393-a0f8-ab51aaaa4611",
+      "id": "81194c4f-f5ba-4dff-b2e4-82d42f02bc0e",
       "name": "Message a Fresher Model",
       "credentials": {
         "openAiApi": {
@@ -291,7 +291,7 @@
         0,
         208
       ],
-      "id": "12170946-8968-4e20-9fc4-36f19391fc35",
+      "id": "69e0c926-83e6-4571-9054-afac673a6dd3",
       "name": "Message a Mid-Level Model",
       "credentials": {
         "openAiApi": {
@@ -323,7 +323,7 @@
         0,
         400
       ],
-      "id": "dbbab454-bd5f-40b8-8372-15c22104af6c",
+      "id": "73262bfe-ea8f-4909-b22e-6026780278f8",
       "name": "Message a Senior Model",
       "credentials": {
         "openAiApi": {
@@ -351,10 +351,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        -576,
+        -592,
         208
       ],
-      "id": "df4c2fcd-2560-4324-9bd6-23d9dd10f62b",
+      "id": "18324ea7-79ef-490b-a2e4-95a4071395b2",
       "name": "Categorize candidate",
       "credentials": {
         "openAiApi": {
@@ -486,11 +486,10 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "d03443a9-e2f0-400c-bb73-c95c7431eb35",
+  "versionId": "dfbeed38-7299-4cb4-a3b1-b1517902a831",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "1e3729eaa6adbc105527548952fbfd43af2e58b391553b8a1a299d47a78ab967"
   },
-  "id": "aBu2Qjt8IXHPJTiP",
+  "id": "RYHD4BzieH6r5nEN",
   "tags": []
 }

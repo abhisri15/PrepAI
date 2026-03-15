@@ -10,7 +10,7 @@ PrepAI now uses a minimal n8n setup.
 ## Flow
 
 ```text
-Frontend -> Flask /api/prep-guide -> n8n webhook /webhook/prepai-form-submit -> Execute Classifier Workflow -> email user
+Frontend -> Flask /api/prep-guide -> n8n webhook /webhook/interview-prep -> Execute Classifier Workflow -> email user
 ```
 
 The backend already normalizes the input before calling n8n:
@@ -34,9 +34,11 @@ So the n8n workflow only needs to:
 
 ## Webhook Endpoint
 
-`Interview Prep Assistant (Form Submission)` now exposes:
+`Interview Prep Assistant (Form Submission)` exposes:
 
-`/webhook/prepai-form-submit`
+`/webhook/interview-prep`
+
+Full URL (production): `https://prepai.app.n8n.cloud/webhook/interview-prep`
 
 Expected JSON body:
 
