@@ -122,7 +122,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        592,
+        816,
         224
       ],
       "id": "c66fefff-ddce-49df-ab19-91d589ebd9cf",
@@ -130,16 +130,18 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $('Webhook Submission').item.json.body['Email'] }}",
+        "descriptionType": "manual",
+        "toolDescription": "Send a polite rejection email to a candidate whose profile does not match the job requirements. Requires: recipient_email, candidate_name, role_applied_for",
+        "sendTo": "={{ $fromAI('recipient_email', 'Email address of the candidate to send rejection to', 'string') }}",
         "subject": "Sorry, this role isn't the right fit",
         "emailType": "text",
-        "message": "=Hi {{ $('Webhook Submission').item.json.body['Your name'] }},  Thanks for sharing the {{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }} role. I'm sorry, but this position isn't the right fit.\n\nPlease feel free to send any other openings that better match your background, and I'll be happy to generate a tailored set of prep questions for you.\n\nBest Regards, \nAbhikalp Srivastava \nOwner, Interview Prep Generator",
+        "message": "=Hi {{ $fromAI('candidate_name', 'Name of the candidate', 'string', 'there') }},\n\nThanks for sharing the {{ $fromAI('role_applied_for', 'Role the candidate applied for', 'string', 'position') }} role. I'm sorry, but this position isn't the right fit.\n\nPlease feel free to send any other openings that better match your background, and I'll be happy to generate a tailored set of prep questions for you.\n\nBest Regards,\nAbhikalp Srivastava\nOwner, Interview Prep Generator",
         "options": {}
       },
       "type": "n8n-nodes-base.gmailTool",
       "typeVersion": 2.1,
       "position": [
-        720,
+        944,
         224
       ],
       "id": "10567459-742d-4961-a10e-1de114ec249e",
@@ -165,7 +167,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        464,
+        688,
         224
       ],
       "id": "76225764-a138-41de-a68e-d923192536dd",
@@ -180,15 +182,15 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ { 'candidate_name': $('Webhook Submission').item.json.body['Your name'], 'candidate_email': $('Webhook Submission').item.json.body['Email'], 'role_applied_for': $('Webhook Submission').item.json.body['Role you\\'re applying for'], 'job_description': $('HTTP Request').item.json.answer, 'candidate_resume': $('Webhook Submission').item.json.body['Resume text'], 'additional_notes': $('Webhook Submission').item.json.body['Additional notes'] } }}",
+        "text": "=Analyze this candidate submission:\n\nCandidate Name: {{ $('Webhook Submission').item.json.body['Your name'] }}\nEmail: {{ $('Webhook Submission').item.json.body['Email'] }}\nRole: {{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }}\n\nJob Description Analysis:\n{{ $('HTTP Request').item.json.answer }}\n\nCandidate Resume:\n{{ $('Webhook Submission').item.json.body['Resume text'] }}\n\nAdditional Notes:\n{{ $('Webhook Submission').item.json.body['Additional notes'] }}\n\nDetermine if this candidate is qualified for the role and take appropriate action.",
         "options": {
-          "systemMessage": "You are an inbound interview qualification agent. Your job is to analyze the candidate submission and decide whether they are qualified to receive personalized interview questions.\n\nYou will receive:\n- candidate_name: The applicant's name\n- candidate_email: Their email address\n- role_applied_for: The job title they're applying for\n- job_description: Detailed analysis of the job requirements\n- candidate_resume: Their full resume text\n- additional_notes: Any extra information they provided\n\nYour task:\n1. Compare the candidate's resume against the job description requirements\n2. Determine if their skills and experience align well with the role\n3. If qualified (good match) → Call the candidate_qualified tool with ALL the candidate data\n4. If not qualified (poor match) → Call the rejection_mail tool\n\nBe generous in your assessment - if the candidate has relevant experience in the field, consider them qualified."
+          "systemMessage": "You are an inbound interview qualification agent. Your job is to analyze the candidate submission and decide whether they are qualified to receive personalized interview questions.\n\nYou will receive:\n- candidate_name: The applicant's name\n- candidate_email: Their email address\n- role_applied_for: The job title they're applying for\n- job_description: Detailed analysis of the job requirements\n- candidate_resume: Their full resume text\n- additional_notes: Any extra information they provided\n\nYour task:\n1. Compare the candidate's resume against the job description requirements\n2. Determine if their skills and experience align well with the role\n3. If qualified (good match) → Call the candidate_qualified tool with ALL the candidate data\n4. If not qualified (poor match) → Call the rejection_mail tool\n\nWhen calling rejection_mail, you must provide: recipient_email (the candidate's email), candidate_name (their name), and role_applied_for (the job title).\n\nBe generous in your assessment - if the candidate has relevant experience in the field, consider them qualified."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        520,
+        744,
         0
       ],
       "id": "a7c9f1c4-9c6e-4bb2-b1ff-08f5a921bd47",
@@ -209,6 +211,59 @@
       "id": "a2ac17f4-1e14-4e4a-860a-12b7c8b5cf07",
       "name": "Webhook Submission",
       "webhookId": "b6603404-e2a5-4b50-b5e9-3c88eb753f2f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_name",
+              "value": "={{ $('Webhook Submission').item.json.body['Your name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_email",
+              "value": "={{ $('Webhook Submission').item.json.body['Email'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "role_applied_for",
+              "value": "={{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "job_description",
+              "value": "={{ $('HTTP Request').item.json.answer }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "candidate_resume",
+              "value": "={{ $('Webhook Submission').item.json.body['Resume text'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "additional_notes",
+              "value": "={{ $('Webhook Submission').item.json.body['Additional notes'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2514e139-3299-4f39-9e87-1dca388f483a",
+      "name": "Prepare Agent Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        0
+      ]
     }
   ],
   "pinData": {},
@@ -217,7 +272,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Prepare Agent Input",
             "type": "main",
             "index": 0
           }
@@ -267,6 +322,22 @@
           }
         ]
       ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -275,7 +346,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "777e27e2-3463-4cb5-9eba-a692dfdbf6d7",
+  "versionId": "cace84c6-0b28-4fca-abe2-780533c31603",
   "meta": {
     "instanceId": "1e3729eaa6adbc105527548952fbfd43af2e58b391553b8a1a299d47a78ab967"
   },

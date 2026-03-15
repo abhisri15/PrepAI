@@ -20,10 +20,10 @@ bp = Blueprint("profile", __name__)
 
 
 def _pick_profile_id(payload: dict) -> str:
+    """Unique id per submission so multiple Prep Guide entries can coexist (e.g. different roles/companies)."""
     return (
         payload.get("profile_id")
         or payload.get("user_id")
-        or payload.get("email")
         or f"profile-{uuid.uuid4().hex[:12]}"
     )
 

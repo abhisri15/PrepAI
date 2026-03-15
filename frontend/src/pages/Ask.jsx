@@ -7,7 +7,14 @@ const PREPAI_PROFILE_ID_KEY = 'prepaiProfileId'
 function loadProfileList() {
   try {
     const list = JSON.parse(localStorage.getItem(PREPAI_PROFILES_KEY) || '[]')
-    if (Array.isArray(list) && list.length > 0) return list
+    if (Array.isArray(list) && list.length > 0) {
+      const normalized = list.map((p) => ({
+        id: p.id,
+        companyName: p.companyName || 'Company',
+        role: p.role || '',
+      }))
+      return normalized.reverse()
+    }
   } catch (_) {}
   const singleId = localStorage.getItem(PREPAI_PROFILE_ID_KEY) || ''
   if (singleId) return [{ id: singleId, companyName: 'Saved profile', role: '' }]
@@ -20,8 +27,10 @@ export default function Ask() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [profileList, setProfileList] = useState([])
-  const [profileId, setProfileId] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const [profile, setProfile] = useState(null)
+
+  const profileId = profileList[selectedIndex]?.id ?? ''
 
   const refreshProfile = useCallback((id) => {
     if (!id) {
@@ -34,18 +43,17 @@ export default function Ask() {
   }, [])
 
   useEffect(() => {
-    setProfileList(loadProfileList())
-    const saved = localStorage.getItem(PREPAI_PROFILE_ID_KEY) || ''
     const list = loadProfileList()
-    const firstId = list.length ? list[0].id : saved
-    setProfileId(firstId || '')
-    if (firstId) refreshProfile(firstId)
+    setProfileList(list)
+    setSelectedIndex(0)
+    if (list.length > 0) refreshProfile(list[0].id)
   }, [refreshProfile])
 
   const handleProfileChange = (e) => {
-    const id = e.target.value
-    setProfileId(id)
-    refreshProfile(id)
+    const index = Number(e.target.value)
+    if (Number.isNaN(index) || index < 0 || index >= profileList.length) return
+    setSelectedIndex(index)
+    refreshProfile(profileList[index].id)
   }
 
   const handleSubmit = async (e) => {
@@ -74,13 +82,13 @@ export default function Ask() {
         <div className="mb-4 space-y-3">
           <label className="block text-sm text-slate-400">Profile (company / role)</label>
           <select
-            value={profileId}
+            value={selectedIndex}
             onChange={handleProfileChange}
             className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
           >
-            {profileList.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.companyName} {p.role ? `— ${p.role}` : ''}
+            {profileList.map((p, index) => (
+              <option key={`${p.id}-${index}`} value={index}>
+                {p.companyName} {p.role ? ` — ${p.role}` : ''}
               </option>
             ))}
           </select>

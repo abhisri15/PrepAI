@@ -125,21 +125,3 @@ export async function getProfile(profileId) {
   if (!r.ok) throw new Error(await parseError(r))
   return r.json()
 }
-
-export async function upload(input, doc_id, options = {}) {
-  if (input instanceof File) {
-    const formData = new FormData()
-    formData.append('file', input)
-    if (doc_id) formData.append('doc_id', doc_id)
-    if (options.profile_id) formData.append('profile_id', options.profile_id)
-    if (options.source) formData.append('source', options.source)
-    return postForm(apiUrl('/api/upload'), formData)
-  }
-
-  return postJson(apiUrl('/api/upload'), {
-    text: input,
-    doc_id,
-    profile_id: options.profile_id,
-    source: options.source,
-  })
-}

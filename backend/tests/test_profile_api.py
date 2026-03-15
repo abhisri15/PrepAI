@@ -15,15 +15,13 @@ def test_prep_guide_stores_profile_and_calls_webhook(monkeypatch):
     temp_dir = Path(tempfile.mkdtemp())
 
     models.DATA_DIR = temp_dir
-    models.FEEDBACK_FILE = temp_dir / "feedback.json"
     models.PROFILE_CONTEXT_FILE = temp_dir / "profile_context.json"
-    models.UPLOADS_DIR = temp_dir / "uploads"
 
     retriever.DATA_DIR = temp_dir
     retriever.CHUNKS_FILE = temp_dir / "chunks.json"
     retriever.EMBEDDINGS_DIR = temp_dir / "embeddings"
 
-    os.environ["N8N_FORM_WEBHOOK_URL"] = "https://example.test/webhook/prepai-form-submit"
+    os.environ["N8N_PREPAI_WEBHOOK_URL"] = "https://example.test/webhook/interview-prep"
     os.environ["LLM_PROVIDER"] = "mock"
 
     captured = {}
@@ -58,7 +56,8 @@ def test_prep_guide_stores_profile_and_calls_webhook(monkeypatch):
     assert response.status_code == 200
     data = response.get_json()
     assert data["message"] == "Detailed prep guide will be sent via email."
-    assert captured["url"] == "https://example.test/webhook/prepai-form-submit"
-    assert captured["payload"]["jd_text"] == "Build backend services and APIs"
+    assert captured["url"] == "https://example.test/webhook/interview-prep"
+    assert captured["payload"].get("Resume text") == "Python Flask APIs"
+    assert captured["payload"].get("Or paste job description text") == "Build backend services and APIs"
     stored = models.get_profile_context(data["profile_id"])
     assert stored["summary_status"] == "complete"

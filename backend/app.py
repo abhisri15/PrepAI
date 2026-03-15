@@ -10,13 +10,6 @@ from flask import Flask
 from flask_cors import CORS
 
 from api.ask import bp as ask_bp
-from api.evaluate import bp as evaluate_bp
-from api.prepare import bp as prepare_bp
-from api.upload import bp as upload_bp
-from api.feedback import bp as feedback_bp
-from api.webhook import bp as webhook_bp
-from api.fetch_jd import bp as fetch_jd_bp
-from api.n8n_submit import bp as n8n_submit_bp
 from api.profile import bp as profile_bp
 from services.llm_provider import get_provider
 
@@ -31,13 +24,6 @@ app = Flask(__name__)
 CORS(app, origins=["*"])
 
 app.register_blueprint(ask_bp)
-app.register_blueprint(evaluate_bp)
-app.register_blueprint(prepare_bp)
-app.register_blueprint(upload_bp)
-app.register_blueprint(feedback_bp)
-app.register_blueprint(webhook_bp)
-app.register_blueprint(fetch_jd_bp)
-app.register_blueprint(n8n_submit_bp)
 app.register_blueprint(profile_bp)
 
 
