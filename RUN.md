@@ -15,7 +15,8 @@ cp .env.example .env
 
 Edit `backend/.env` and set:
 
-- `GOOGLE_API_KEY` — your Gemini API key (for resume+JD summary and Ask answers)
+- `GOOGLE_API_KEY` — your Gemini API key (for profile summary in background)
+- `GROQ_API_KEY` — your Groq API key (used for /api/ask for fast personalized answers)
 - `N8N_PREPAI_WEBHOOK_URL=https://prepai.app.n8n.cloud/webhook/interview-prep`
 
 Then:
@@ -88,4 +89,4 @@ After deploy, new pushes to GitHub will auto-deploy on Render if auto-deploy is 
 1. **Backend health**: `curl https://YOUR-RENDER-URL/health` → should return `{"status":"ok", ...}`.
 2. **Prep Guide**: Open frontend → Prep Guide → submit with resume (file or text) and JD (URL or text). Expect success message; check email if n8n is configured.
 3. **Ask**: Open Ask → select the saved profile from dropdown → ask a question → expect an answer using your resume/JD context.
-4. **Gemini**: Ensure `GOOGLE_API_KEY` is set on Render so profile summary and Ask use Gemini.
+4. **Ask**: Ensure `GROQ_API_KEY` is set on Render so /api/ask uses Groq (full profile context is sent each time). Optionally `GOOGLE_API_KEY` for background profile summary.

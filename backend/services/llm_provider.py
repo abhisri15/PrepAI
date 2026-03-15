@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 _openai_client = None
 _anthropic_client = None
 _gemini_model = None
+_groq_client = None
 
 
 def _get_openai():
@@ -21,6 +22,17 @@ def _get_openai():
         from openai import OpenAI
         _openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
     return _openai_client
+
+
+def _get_groq():
+    global _groq_client
+    if _groq_client is None:
+        from openai import OpenAI
+        _groq_client = OpenAI(
+            api_key=os.getenv("GROQ_API_KEY", ""),
+            base_url="https://api.groq.com/openai/v1",
+        )
+    return _groq_client
 
 
 def _get_anthropic():
@@ -169,12 +181,35 @@ class GeminiProvider(BaseLLMProvider):
         return "gemini"
 
 
+class GroqProvider(BaseLLMProvider):
+    """Groq (OpenAI-compatible API) for fast inference."""
+
+    def generate(self, prompt: str, system: str = "", temperature: float = 0.7, max_tokens: int = 1024) -> str:
+        client = _get_groq()
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        r = client.chat.completions.create(
+            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return (r.choices[0].message.content or "").strip()
+
+    @property
+    def name(self) -> str:
+        return "groq"
+
+
 _PROVIDERS = {
     "auto": MockProvider,
     "mock": MockProvider,
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "gemini": GeminiProvider,
+    "groq": GroqProvider,
 }
 
 
@@ -187,8 +222,17 @@ def _resolve_provider_name() -> str:
             return "anthropic"
         if os.getenv("GOOGLE_API_KEY", "").strip():
             return "gemini"
+        if os.getenv("GROQ_API_KEY", "").strip():
+            return "groq"
         return "mock"
     return configured
+
+
+def get_ask_provider() -> BaseLLMProvider:
+    """Provider for /api/ask: prefer Groq if GROQ_API_KEY is set, else default provider."""
+    if os.getenv("GROQ_API_KEY", "").strip():
+        return GroqProvider()
+    return get_provider()
 
 
 def get_provider() -> BaseLLMProvider:
@@ -199,8 +243,9 @@ def get_provider() -> BaseLLMProvider:
     return _PROVIDERS[name]()
 
 
-def generate_json(prompt: str, system: str = "", **kwargs) -> dict:
-    """Convenience: generate and parse JSON response."""
-    provider = get_provider()
+def generate_json(prompt: str, system: str = "", provider: BaseLLMProvider = None, **kwargs) -> dict:
+    """Convenience: generate and parse JSON response. Optional provider overrides default."""
+    if provider is None:
+        provider = get_provider()
     raw = provider.generate(prompt, system=system, **kwargs)
     return _parse_json_from_text(raw)
