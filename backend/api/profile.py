@@ -114,21 +114,19 @@ def init_profile_flow():
     if not webhook_url:
         return jsonify({"error": "Prep guide webhook not configured. Set N8N_PREPAI_WEBHOOK_URL or N8N_FORM_WEBHOOK_URL."}), 503
 
-    # n8n "Interview Prep Assistant" expects body with these exact keys (form-style)
-    n8n_body = {
+    # n8n expects flat JSON with these exact keys (no "body" wrapper)
+    n8n_payload = {
         "Your name": payload.get("name", ""),
         "Email": payload.get("email", ""),
         "Role you're applying for": payload.get("role", ""),
-        "Job description URL": jd_url,
         "Resume text": resume_text,
+        "Job description URL": jd_url or "",
+        "Or paste job description text": jd_text if not jd_url else "",
         "Additional notes": payload.get("additional_notes", ""),
     }
-    # When workflow supports pasted JD: send text so n8n can use it when URL is empty
-    if jd_text and not jd_url:
-        n8n_body["Job description text"] = jd_text
     result = {}
     try:
-        result = post_webhook(webhook_url, {"body": n8n_body})
+        result = post_webhook(webhook_url, n8n_payload)
     except (RequestException, ValueError) as e:
         # Profile is saved; n8n may still process async. Return success so user can use Ask.
         import logging
