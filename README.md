@@ -79,7 +79,7 @@ PrepAI takes your resume and a job description, then gives you everything you ne
 - Answer uses your full resume + JD context (summary if ready, else raw text)
 - Response includes `answer`, `improvements[]`, `confidence`, and `sources[]`
 
-### ATS Score *(new)*
+### ATS Score
 - LLM-based analysis — not just keyword counting
 - Returns an overall score (0–100) + category breakdown (skills / experience / education / keywords)
 - Lists matched keywords (green) and missing keywords (red)
