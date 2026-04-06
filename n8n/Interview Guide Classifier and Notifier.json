@@ -6,6 +6,9 @@
         "workflowInputs": {
           "values": [
             {
+              "name": "Profile ID"
+            },
+            {
               "name": "Name"
             },
             {
@@ -22,10 +25,6 @@
             },
             {
               "name": "Additional Notes"
-            },
-            {
-              "name": "Qualified",
-              "type": "boolean"
             }
           ]
         }
@@ -38,6 +37,37 @@
       ],
       "id": "eac8509f-541b-4a05-8ccc-add28e05c26e",
       "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert Interview Seniority Classifier. Based on the inputs provided below:\n\n- Name: {{ $json.Name }}\n- Email: {{ $json.Email }}\n- Role: {{ $json.Role }}\n- Job Description: {{ $json['Job Description'] }}\n- Resume: {{ $json.Resume }}\n- Additional Notes: {{ $json['Additional Notes'] }}\n\nYour task is to analyze the candidate's experience and determine their professional seniority level. Carefully evaluate the resume and job description to assess the candidate's actual work history, years of experience, depth of responsibility, and complexity of projects handled.\n\nClassify the candidate into one of the following three categories:\n\nFresher\n- Typically has 0–2 years of professional experience.\n- May have done internships, coursework, hackathons, or academic projects.\n- Limited exposure to industry-standard tools or production systems.\n\nMid-Level\n- Typically has 2–5 years of industry experience in relevant domains.\n- Has worked independently or in small teams on real-world projects.\n- May have owned modules, features, or parts of production systems.\n\nSenior\n- Usually has 5+ years of experience in relevant roles.\n- Has demonstrated leadership, system design, or architectural decisions.\n- Comfortable owning large projects end-to-end and working cross-functionally.\n\nUse your best judgment and output ONLY one of the following exact strings (case-sensitive, no extra text):\n- fresher\n- mid_level\n- senior"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -592,
+        208
+      ],
+      "id": "18324ea7-79ef-490b-a2e4-95a4071395b2",
+      "name": "Categorize candidate",
+      "credentials": {
+        "openAiApi": {
+          "id": "jSTot0m8NRHUoumT",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
     },
     {
       "parameters": {
@@ -124,24 +154,97 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $('When Executed by Another Workflow').item.json.Email }}",
-        "subject": "=Your Personalized Interview Preparation Guide for the {{ $('When Executed by Another Workflow').item.json.Role }} Role  Body:",
-        "message": "=Hi {{ $('When Executed by Another Workflow').item.json.Name }},\n\nThank you for submitting your details. Based on your experience level and the job you're applying for, we've created a personalized interview preparation guide tailored just for you.\n\nThis guide includes:\n- A breakdown of the role and key focus areas\n- Technical topics to study with helpful resources\n- Practice questions (technical + behavioral)\n- A recommended study plan\n- Bonus tools and materials to sharpen your prep\n\nYou’ll find everything you need to build confidence and perform your best in your upcoming interview.\n\nPlease review the guide below:\n\n---\n\n{{ $json.data }}\n\n---\n\nWishing you the very best with your preparation. If you'd like to receive a mock interview or additional help, feel free to reply to this email.\n\nBest regards,  \nInterview Prep Assistant  \nabhikalpsri@gmail.com\n",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert career coach and technical interviewer. You will receive the following inputs:\n\nName: {{ $('When Executed by Another Workflow').item.json.Name }}\nEmail: {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for: {{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details: {{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (including skills, projects, academic background, and internships): {{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (preferences, interests, or specific concerns): {{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is a Fresher with little to no professional experience (0–2 years). Create a personalized and highly actionable Interview Preparation Guide structured as follows:\n\n## 1. Summary of the Role\nBriefly summarize the job description, key responsibilities, and required skills in a student-friendly tone.\n\n## 2. Key Technical Areas to Focus On\nIdentify 5–7 core technical topics or tools from the job description. For each, provide one free high-quality resource link (YouTube, freeCodeCamp, GeeksforGeeks, etc.).\n\n## 3. Project Suggestions\nSuggest 1–2 small, resume-enhancing projects relevant to the job role that can be built in under 2 weeks.\n\n## 4. Mock Interview Questions\nGenerate 8–10 beginner-level technical questions based on the job description and candidate's skillset. Then 3–4 behavioral questions with answering tips.\n\n## 5. 14-Day Study Plan\nCreate a day-wise prep plan including study time, mock practice, and hands-on work.\n\n## 6. Bonus Resources\nShare 2–3 helpful playlists or crash courses that are free and accessible for students.\n\nMake the tone encouraging, structured, and beginner-friendly."
+            }
+          ]
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
       "position": [
-        592,
+        0,
         0
       ],
-      "id": "a7946b4b-5e94-4985-98f4-c75b3b860cf8",
-      "name": "Fresher",
-      "webhookId": "f9b43dff-fd9e-40f7-8234-642072b15131",
+      "id": "81194c4f-f5ba-4dff-b2e4-82d42f02bc0e",
+      "name": "Message a Fresher Model",
       "credentials": {
-        "gmailOAuth2": {
-          "id": "pmkeYIM95qeuKw6I",
-          "name": "Gmail account"
+        "openAiApi": {
+          "id": "jSTot0m8NRHUoumT",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a senior interview coach and technical hiring expert. You will receive the following inputs:\n\nName: {{ $('When Executed by Another Workflow').item.json.Name }}\nEmail: {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for: {{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details: {{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (including skills, professional experience, projects, and tools used): {{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (preferences, challenges, areas of concern): {{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is at a Mid-Level of experience (2–5 years). Create a personalized, role-specific Interview Preparation Guide structured as follows:\n\n## 1. Role Breakdown\nExtract and summarize the key expectations, responsibilities, and tools from the job description. Explain what the interviewer will likely focus on.\n\n## 2. Technical Areas to Strengthen\nIdentify 5–7 technical areas from the job description to revise or go deeper into. Provide one high-quality, hands-on resource for each (official docs, blog posts, GitHub examples).\n\n## 3. System Design Focus\nSuggest 1–2 relevant system design or architecture problems the candidate might face in this role.\n\n## 4. Mock Interview Questions\nGenerate 10–12 technical questions (coding, system-based, tool-specific). Then 4–5 behavioral or project-deep-dive questions based on their experience.\n\n## 5. Project Deep Dive Preparation\nSuggest how to prepare to discuss past projects — what metrics to highlight and common mistakes to avoid.\n\n## 6. 10-Day Study Plan\nBuild a daily or alternate-day plan including learning, practice, mock interviews, and review.\n\n## 7. Useful Tools\nRecommend 2–3 platforms ideal for mid-level prep (LeetCode, System Design Primer, Tech Interview Handbook, etc.).\n\nKeep the tone practical, focused, and empowering."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        0,
+        208
+      ],
+      "id": "69e0c926-83e6-4571-9054-afac673a6dd3",
+      "name": "Message a Mid-Level Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "jSTot0m8NRHUoumT",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a principal-level engineering mentor and leadership interviewer. You will receive the following inputs:\n\nName: {{ $('When Executed by Another Workflow').item.json.Name }}\nEmail: {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for: {{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details: {{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (highlighting experience, leadership, system ownership, architecture, scaling, mentoring): {{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (concerns, focus areas, special instructions): {{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is a Senior-Level professional (5+ years). Create a personalized, strategic Interview Preparation and Positioning Guide structured as follows:\n\n## 1. Strategic Role Analysis\nAnalyze the job description for leadership expectations, technical ownership, cross-functional collaboration, and architectural impact. Describe how the role aligns with a senior engineer's growth path.\n\n## 2. Core Focus Areas\nIdentify 4–6 advanced topics the candidate should focus on (large-scale system design, performance optimization, engineering strategy, infrastructure resilience). Provide one advanced-level resource for each (whitepapers, deep-dive articles, high-quality tech talks).\n\n## 3. Architecture and Design Scenarios\nSuggest 2–3 real-world system design scenarios relevant to the role. Include prompts or questions the interviewer might ask.\n\n## 4. Metrics and Impact Framing\nRecommend how to frame past work in terms of business or system impact. Suggest 4–5 key metrics to highlight (latency, scalability, uptime, cost savings, hiring impact).\n\n## 5. Senior Behavioral and Leadership Questions\nGenerate 5–6 behavioral questions focused on decision-making, stakeholder alignment, team leadership, and mentoring. Provide STAR-format tips for answering.\n\n## 6. 7-Day Strategic Prep Plan\nBalance technical review, architecture thinking, leadership story-building, and mock discussions.\n\n## 7. Advanced Resources\nSuggest 2–3 high-level resources (e.g., Designing Data-Intensive Applications, Martin Fowler's blog, engineering leadership podcasts).\n\nTone: sharp, executive-level, strategic."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        0,
+        400
+      ],
+      "id": "73262bfe-ea8f-4909-b22e-6026780278f8",
+      "name": "Message a Senior Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "jSTot0m8NRHUoumT",
+          "name": "n8n free OpenAI API credits"
         }
       }
     },
@@ -193,8 +296,33 @@
     {
       "parameters": {
         "sendTo": "={{ $('When Executed by Another Workflow').item.json.Email }}",
-        "subject": "=Your Personalized Interview Preparation Guide for the {{ $('When Executed by Another Workflow').item.json.Role }} Role  Body:",
-        "message": "=Hi {{ $('When Executed by Another Workflow').item.json.Name }},\n\nThank you for submitting your details. Based on your experience level and the job you're applying for, we've created a personalized interview preparation guide tailored just for you.\n\nThis guide includes:\n- A breakdown of the role and key focus areas\n- Technical topics to study with helpful resources\n- Practice questions (technical + behavioral)\n- A recommended study plan\n- Bonus tools and materials to sharpen your prep\n\nYou’ll find everything you need to build confidence and perform your best in your upcoming interview.\n\nPlease review the guide below:\n\n---\n\n{{ $json.data }}\n\n---\n\nWishing you the very best with your preparation. If you'd like to receive a mock interview or additional help, feel free to reply to this email.\n\nBest regards,  \nInterview Prep Assistant  \nabhikalpsri@gmail.com\n",
+        "subject": "=Your Personalized Interview Prep Guide — {{ $('When Executed by Another Workflow').item.json.Role }} (Fresher Track)",
+        "emailType": "html",
+        "message": "=<p>Hi {{ $('When Executed by Another Workflow').item.json.Name }},</p>\n\n<p>Thank you for submitting your details. Based on your experience level and the role you're targeting, here is your personalized interview preparation guide.</p>\n\n<p>This guide includes a role breakdown, key technical areas to study, project suggestions, practice questions, and a 14-day study plan — tailored specifically for you as an early-career candidate.</p>\n\n<hr/>\n\n{{ $json.html }}\n\n<hr/>\n\n<p>Wishing you all the best with your preparation! If you'd like additional help or a mock interview session, feel free to reply to this email.</p>\n\n<p>Best regards,<br/>\nAbhikalp Srivastava<br/>\nInterview Prep Assistant<br/>\nabhikalpsri@gmail.com</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        592,
+        0
+      ],
+      "id": "a7946b4b-5e94-4985-98f4-c75b3b860cf8",
+      "name": "Fresher",
+      "webhookId": "f9b43dff-fd9e-40f7-8234-642072b15131",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "pmkeYIM95qeuKw6I",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('When Executed by Another Workflow').item.json.Email }}",
+        "subject": "=Your Personalized Interview Prep Guide — {{ $('When Executed by Another Workflow').item.json.Role }} (Mid-Level Track)",
+        "emailType": "html",
+        "message": "=<p>Hi {{ $('When Executed by Another Workflow').item.json.Name }},</p>\n\n<p>Thank you for submitting your details. Based on your experience level and the role you're targeting, here is your personalized interview preparation guide.</p>\n\n<p>This guide covers a role breakdown, technical areas to strengthen, system design focus, mock questions, and a 10-day study plan — built around your real-world experience.</p>\n\n<hr/>\n\n{{ $json.html }}\n\n<hr/>\n\n<p>Wishing you all the best with your preparation! If you'd like additional help or a mock interview session, feel free to reply to this email.</p>\n\n<p>Best regards,<br/>\nAbhikalp Srivastava<br/>\nInterview Prep Assistant<br/>\nabhikalpsri@gmail.com</p>",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
@@ -216,8 +344,9 @@
     {
       "parameters": {
         "sendTo": "={{ $('When Executed by Another Workflow').item.json.Email }}",
-        "subject": "=Your Personalized Interview Preparation Guide for the {{ $('When Executed by Another Workflow').item.json.Role }} Role  Body:",
-        "message": "=Hi {{ $('When Executed by Another Workflow').item.json.Name }},\n\nThank you for submitting your details. Based on your experience level and the job you're applying for, we've created a personalized interview preparation guide tailored just for you.\n\nThis guide includes:\n- A breakdown of the role and key focus areas\n- Technical topics to study with helpful resources\n- Practice questions (technical + behavioral)\n- A recommended study plan\n- Bonus tools and materials to sharpen your prep\n\nYou’ll find everything you need to build confidence and perform your best in your upcoming interview.\n\nPlease review the guide below:\n\n---\n\n{{ $json.data }}\n\n---\n\nWishing you the very best with your preparation. If you'd like to receive a mock interview or additional help, feel free to reply to this email.\n\nBest regards,  \nInterview Prep Assistant  \nabhikalpsri@gmail.com\n",
+        "subject": "=Your Personalized Interview Prep Guide — {{ $('When Executed by Another Workflow').item.json.Role }} (Senior Track)",
+        "emailType": "html",
+        "message": "=<p>Hi {{ $('When Executed by Another Workflow').item.json.Name }},</p>\n\n<p>Thank you for submitting your details. Based on your experience level and the role you're targeting, here is your personalized strategic interview guide.</p>\n\n<p>This guide covers strategic role analysis, advanced focus areas, architecture scenarios, impact framing, senior behavioral questions, and a 7-day prep plan — designed for high-responsibility roles.</p>\n\n<hr/>\n\n{{ $json.html }}\n\n<hr/>\n\n<p>Wishing you all the best with your preparation! If you'd like additional help or a mock discussion, feel free to reply to this email.</p>\n\n<p>Best regards,<br/>\nAbhikalp Srivastava<br/>\nInterview Prep Assistant<br/>\nabhikalpsri@gmail.com</p>",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
@@ -238,130 +367,66 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "GPT-4O-MINI"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=Prompt for Fresher-Level Model\nYou are an expert career coach and technical interviewer. You will receive the following inputs:\n\nName :{{ $('When Executed by Another Workflow').item.json.Name }}\nEmail : {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for :{{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details :{{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (including skills, projects, academic background, and internships) :{{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (preferences, interests, or specific concerns) :{{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is a Fresher with little to no professional experience (0–2 years). Your task is to create a personalized and highly actionable Interview Preparation Guide to help this entry-level candidate succeed in their upcoming interview.\n\nYour output should be structured as follows:\n\n1. Summary of the Role\n- Briefly summarize the job description, key responsibilities, and required skills in a student-friendly tone.\n\n2. Key Technical Areas to Focus On\n- Identify 5–7 core technical topics or tools from the job description that the candidate should study.\n\n3. Provide one free high-quality link or resource for each topic (YouTube, freeCodeCamp, GeeksforGeeks, etc.).\n\n4. Project Suggestions (if portfolio is weak)\n- Suggest 1–2 small, resume-enhancing projects relevant to the job role that the candidate can build in under 2 weeks.\n\n5. Mock Questions\n- Generate 8–10 beginner-level technical questions based on the job description and candidate’s skillset.\n- Generate 3–4 behavioral questions with tips on how to answer them.\n\n6. Suggested Learning Plan (7–14 days)\n- Create a day-wise or weekly prep plan for the candidate, including time for revision, mock interviews, and hands-on practice.\n\n7. Bonus Resources\n- Share 2–3 helpful playlists, crash courses, or prep books that are free or very accessible for students.\n\nMake the tone encouraging, structured, and very beginner-friendly. Assume they’re preparing for one of their first real job interviews."
-            }
-          ]
-        },
-        "options": {}
+        "method": "POST",
+        "url": "={{ $vars.BACKEND_URL || 'https://your-prepai-backend.onrender.com' }}/api/webhook/result",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profile_id: $('When Executed by Another Workflow').item.json['Profile ID'], email_sent: true, level: 'fresher' }) }}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        0,
+        816,
         0
       ],
-      "id": "81194c4f-f5ba-4dff-b2e4-82d42f02bc0e",
-      "name": "Message a Fresher Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "jSTot0m8NRHUoumT",
-          "name": "n8n free OpenAI API credits"
-        }
-      }
+      "id": "callback-fresher-001",
+      "name": "Callback - Fresher",
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "GPT-4O-MINI"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=You are a senior interview coach and technical hiring expert. You will receive the following inputs:\n\nName: {{ $('When Executed by Another Workflow').item.json.Name }}\nEmail: {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for: {{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details: {{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (including skills, professional experience, projects, and tools used): {{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (preferences, challenges, areas of concern): {{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is at a Mid-Level of experience (2–5 years). Your task is to create a personalized, role-specific Interview Preparation Guide to help this candidate sharpen their technical and project-based depth, and present themselves with confidence.\n\nYour output should be structured as follows:\n\n1. Role Breakdown\n- Extract and summarize the key expectations, responsibilities, and tools mentioned in the job description.\n- Explain what the interviewer will likely focus on, based on the role.\n\n2. Technical Areas to Strengthen\n- Identify 5–7 technical areas from the job description that the candidate should revise or go deeper into.\n- Provide one high-quality, hands-on or advanced resource for each (official docs, blog posts, GitHub examples, etc.).\n\n3. Systems or Architecture Focus (if applicable)\n- Suggest 1–2 small but relevant system design or architecture problems that the candidate might be asked in this role.\n\n4. Interview Questions to Practice\n- Generate 10–12 technical questions (coding, system-based, tool-specific).\n- Generate 4–5 behavioral or project-deep-dive questions based on their experience.\n\n5. Project Deep Dive Preparation\n- Suggest how they should prepare to talk about their past projects in interviews.\n- Mention what metrics or outcomes to highlight and common mistakes to avoid.\n\n6. 10-Day Study and Practice Plan\n- Build a daily or alternate-day plan including learning, practice, mock interviews, and review.\n\n7. Useful Tools\n- Recommend 2–3 tools or platforms like LeetCode, System Design Primer, or Tech Interview Handbook that are ideal for mid-level prep.\n\nKeep the tone practical, focused, and empowering. Help them balance technical rigor with confidence in presenting their real-world experience."
-            }
-          ]
-        },
-        "options": {}
+        "method": "POST",
+        "url": "={{ $vars.BACKEND_URL || 'https://your-prepai-backend.onrender.com' }}/api/webhook/result",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profile_id: $('When Executed by Another Workflow').item.json['Profile ID'], email_sent: true, level: 'mid_level' }) }}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        0,
+        816,
         208
       ],
-      "id": "69e0c926-83e6-4571-9054-afac673a6dd3",
-      "name": "Message a Mid-Level Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "jSTot0m8NRHUoumT",
-          "name": "n8n free OpenAI API credits"
-        }
-      }
+      "id": "callback-mid-001",
+      "name": "Callback - Mid-Level",
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "GPT-4O-MINI"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=You are a principal-level engineering mentor and leadership interviewer. You will receive the following inputs:\n\nName: {{ $('When Executed by Another Workflow').item.json.Name }}\nEmail: {{ $('When Executed by Another Workflow').item.json.Email }}\nRole the candidate is applying for: {{ $('When Executed by Another Workflow').item.json.Role }}\nJob Description/Company Details: {{ $('When Executed by Another Workflow').item.json['Job Description'] }}\nResume (highlighting experience, leadership, system ownership, architecture, scaling, mentoring): {{ $('When Executed by Another Workflow').item.json.Resume }}\nAdditional Notes (concerns, areas they want to focus on, special instructions): {{ $('When Executed by Another Workflow').item.json['Additional Notes'] }}\n\nThe candidate is a Senior-Level professional with 5+ years of experience. Your task is to create a personalized, strategic Interview Preparation and Positioning Guide to help them succeed in high-stakes technical and leadership interviews.\n\nYour output should be structured as follows:\n\n1. Strategic Summary of the Role\n- Analyze the job description and extract leadership expectations, technical ownership, cross-functional collaboration, and architectural impact areas.\n- Briefly describe how the role aligns with growth, scaling, or leadership paths in a senior engineer's career.\n\n2. Core Focus Areas\n- Identify 4–6 advanced topics the candidate should focus on (e.g., large-scale system design, performance optimization, engineering strategy, infrastructure resilience).\n- Provide one advanced-level resource for each (e.g., whitepapers, deep-dive articles, high-quality tech talks, or case studies).\n\n3. Architecture and Design Scenarios\n- Suggest 2–3 real-world system design scenarios relevant to the role (e.g., scaling a microservice-based system, designing a high-availability architecture, data-intensive infrastructure).\n- Optionally include prompts or questions the interviewer might ask around these.\n\n4. Metrics and Impact\n- Recommend how to frame past work in terms of business or system impact.\n- Suggest 4–5 key metrics to mention (e.g., latency improvement, traffic scalability, uptime, cost savings, hiring impact).\n\n5. Senior Behavioral and Leadership Questions\n- Generate 5–6 behavioral questions focused on decision-making, stakeholder alignment, team leadership, and mentoring.\n- Provide brief suggestions or STAR-format tips for answering them effectively.\n\n6. 7–10 Day Strategic Prep Plan\n- Create a preparation strategy that balances technical review, architecture thinking, leadership story-building, and mock discussions.\n- Emphasize reflection, system storytelling, and structured communication.\n\n7. Recommended Advanced Content\n- Suggest 2–3 high-level resources like:\n- \"Designing Data-Intensive Applications\" by Martin Kleppmann\n- Martin Fowler’s architecture blog\n- Podcasts or YouTube channels on engineering leadership or tech strategy\n\nThe tone should be sharp, executive-level, and strategic. Help the candidate focus on impact, clarity, and authority as they position themselves for high-responsibility roles."
-            }
-          ]
-        },
-        "options": {}
+        "method": "POST",
+        "url": "={{ $vars.BACKEND_URL || 'https://your-prepai-backend.onrender.com' }}/api/webhook/result",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profile_id: $('When Executed by Another Workflow').item.json['Profile ID'], email_sent: true, level: 'senior' }) }}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        0,
+        816,
         400
       ],
-      "id": "73262bfe-ea8f-4909-b22e-6026780278f8",
-      "name": "Message a Senior Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "jSTot0m8NRHUoumT",
-          "name": "n8n free OpenAI API credits"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "id"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=You are an expert Interview Seniority Classifier. Based on the inputs provided below:\n\n- Name : {{ $json.Name }}  \n- Email :{{ $json.Email }}\n- Role :{{ $json.Role }}\n- Job Description :  {{ $json['Job Description'] }}\n- Resume :{{ $json.Resume }}\n- Additional Notes : {{ $json['Additional Notes'] }}\n\nYour task is to analyze the candidate’s experience and determine their professional seniority level. Carefully evaluate the resume and job description to assess the candidate’s actual work history, years of experience, depth of responsibility, and complexity of projects or roles handled.\n\nClassify the candidate into one of the following three categories, and output only the exact label—no extra text, comments, or formatting:\n\n---\n\nFresher\n- Typically has 0–2 years of professional experience.  \n- May have done internships, coursework, hackathons, academic projects, or entry-level freelance work.  \n- Roles are mostly learning-based or part of educational programs.  \n- Limited exposure to industry-standard tools or production systems.  \n- Not expected to have end-to-end project ownership or leadership responsibilities.\n\nMid-Level \n- Typically has 2–5 years of industry experience in relevant domains.  \n- Has worked independently or in small teams on real-world projects.  \n- May have owned modules, features, or parts of production systems.  \n- Shows understanding of software engineering practices and business value.  \n- May have led small initiatives or contributed significantly to medium-sized products.\n\nSenior  \n- Usually has 5+ years of experience in relevant roles.  \n- Has demonstrated leadership (technical or team), system design, architectural decisions, or mentoring.  \n- Experience includes owning large projects end-to-end, improving team processes, or making strategic decisions.  \n- Comfortable working cross-functionally and scaling systems or teams.  \n- Resume likely includes titles like “Senior Engineer,” “Lead,” “Architect,” or managerial roles.\n\n---\n\nUse your best judgment and output only one of the following (case-sensitive):  \n- fresher  \n- mid_level  \n- senior  \n"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
-      "position": [
-        -592,
-        208
-      ],
-      "id": "18324ea7-79ef-490b-a2e4-95a4071395b2",
-      "name": "Categorize candidate",
-      "credentials": {
-        "openAiApi": {
-          "id": "jSTot0m8NRHUoumT",
-          "name": "n8n free OpenAI API credits"
-        }
-      }
+      "id": "callback-senior-001",
+      "name": "Callback - Senior",
+      "continueOnFail": true
     }
   ],
   "pinData": {},
@@ -371,6 +436,17 @@
         [
           {
             "node": "Categorize candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Categorize candidate": {
+      "main": [
+        [
+          {
+            "node": "Switch",
             "type": "main",
             "index": 0
           }
@@ -396,39 +472,6 @@
         [
           {
             "node": "Message a Senior Model",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markdown": {
-      "main": [
-        [
-          {
-            "node": "Fresher",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markdown1": {
-      "main": [
-        [
-          {
-            "node": "Mid-Level",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markdown2": {
-      "main": [
-        [
-          {
-            "node": "Senior",
             "type": "main",
             "index": 0
           }
@@ -468,11 +511,66 @@
         ]
       ]
     },
-    "Categorize candidate": {
+    "Markdown": {
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Fresher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown1": {
+      "main": [
+        [
+          {
+            "node": "Mid-Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown2": {
+      "main": [
+        [
+          {
+            "node": "Senior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fresher": {
+      "main": [
+        [
+          {
+            "node": "Callback - Fresher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mid-Level": {
+      "main": [
+        [
+          {
+            "node": "Callback - Mid-Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Senior": {
+      "main": [
+        [
+          {
+            "node": "Callback - Senior",
             "type": "main",
             "index": 0
           }

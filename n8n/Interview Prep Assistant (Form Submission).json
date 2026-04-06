@@ -3,25 +3,138 @@
   "nodes": [
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api-f1db6c.stack.tryrelevance.com/latest/studios/20c74a62-53f8-42e0-81aa-abbf8a72879f/trigger_webhook?project=1e52100c8d9c-4c92-926b-95a2d408270c",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\"company_url\":\"{{ $json.body['Job description URL'] }}\"}",
+        "httpMethod": "POST",
+        "path": "interview-prep",
         "options": {}
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        240,
-        0
-      ],
-      "id": "5f93505c-7c4c-474f-888c-eeef8594585e",
-      "name": "HTTP Request"
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "id": "a2ac17f4-1e14-4e4a-860a-12b7c8b5cf07",
+      "name": "Webhook Submission",
+      "webhookId": "b6603404-e2a5-4b50-b5e9-3c88eb753f2f"
     },
     {
       "parameters": {
-        "description": "Call this tool to generate a personalized set of interview questions based on the candidate's resume and the job description. Use only if the candidate's profile aligns well with the job requirements.\n\nInput should include:\n{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"role\": \"Job Title\",\n  \"job_description\": \"Job description text or URL\",\n  \"resume\": \"Brief summary of skills, experience, and projects\",\n  \"additional_notes\": \"Any extra information or preferences (optional)\",\n  \"qualified\": true\n}\n",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "profile_id",
+              "value": "={{ $json.body['profile_id'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "candidate_name",
+              "value": "={{ $json.body['Your name'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "candidate_email",
+              "value": "={{ $json.body['Email'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s4",
+              "name": "role",
+              "value": "={{ $json.body[\"Role you're applying for\"] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s5",
+              "name": "resume_text",
+              "value": "={{ $json.body['Resume text'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s6",
+              "name": "jd_text",
+              "value": "={{ $json.body['Or paste job description text'] || $json.body['jd_text'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s7",
+              "name": "additional_notes",
+              "value": "={{ $json.body['Additional notes'] || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [240, 200],
+      "id": "2514e139-3299-4f39-9e87-1dca388f483a",
+      "name": "Standardize Input"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a technical recruiter evaluating candidate fit for a job role. Analyze the resume against the job description carefully. Respond with ONLY a raw JSON object — no markdown, no code blocks, no extra text."
+            },
+            {
+              "content": "=Evaluate whether this candidate is a good fit for the role.\n\nRole: {{ $json.role }}\n\nJob Description:\n{{ $json.jd_text }}\n\nResume:\n{{ $json.resume_text }}\n\nAdditional Notes:\n{{ $json.additional_notes }}\n\nBe generous: if the candidate has relevant experience in the field or adjacent skills, mark them as qualified. Return exactly this JSON:\n{\"qualified\": true, \"reason\": \"One sentence explaining the fit\"}\nor\n{\"qualified\": false, \"reason\": \"One sentence explaining the mismatch\"}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [480, 200],
+      "id": "openai-qualify-001",
+      "name": "Qualify Candidate",
+      "credentials": {
+        "openAiApi": {
+          "id": "jSTot0m8NRHUoumT",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-qualified",
+              "leftValue": "={{ $json.message.content }}",
+              "rightValue": "\"qualified\": true",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 200],
+      "id": "if-qualified-001",
+      "name": "Candidate Qualified?"
+    },
+    {
+      "parameters": {
         "workflowId": {
           "__rl": true,
           "value": "RYHD4BzieH6r5nEN",
@@ -32,120 +145,65 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "Qualified": true,
-            "Name": "={{ $('Webhook Submission').item.json.body['Your name'] }}",
-            "Email": "={{ $('Webhook Submission').item.json.body['Email'] }}",
-            "Role": "={{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }}",
-            "Job Description": "={{ $('HTTP Request').item.json }}",
-            "Resume": "={{ $('Webhook Submission').item.json.body['Resume text'] }}",
-            "Additional Notes": "={{ $('Webhook Submission').item.json.body['Additional notes'] }}"
+            "Profile ID": "={{ $('Standardize Input').item.json.profile_id }}",
+            "Name": "={{ $('Standardize Input').item.json.candidate_name }}",
+            "Email": "={{ $('Standardize Input').item.json.candidate_email }}",
+            "Role": "={{ $('Standardize Input').item.json.role }}",
+            "Job Description": "={{ $('Standardize Input').item.json.jd_text }}",
+            "Resume": "={{ $('Standardize Input').item.json.resume_text }}",
+            "Additional Notes": "={{ $('Standardize Input').item.json.additional_notes }}"
           },
-          "matchingColumns": [
-            "Name"
-          ],
+          "matchingColumns": ["Name"],
           "schema": [
-            {
-              "id": "Name",
-              "displayName": "Name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Email",
-              "displayName": "Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Role",
-              "displayName": "Role",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Job Description",
-              "displayName": "Job Description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Resume",
-              "displayName": "Resume",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Additional Notes",
-              "displayName": "Additional Notes",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "Qualified",
-              "displayName": "Qualified",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "boolean",
-              "removed": false
-            }
+            {"id": "Profile ID", "displayName": "Profile ID", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Email", "displayName": "Email", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Role", "displayName": "Role", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Job Description", "displayName": "Job Description", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Resume", "displayName": "Resume", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false},
+            {"id": "Additional Notes", "displayName": "Additional Notes", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string", "removed": false}
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-      "typeVersion": 2.2,
-      "position": [
-        816,
-        224
-      ],
-      "id": "c66fefff-ddce-49df-ab19-91d589ebd9cf",
-      "name": "candidate_qualified"
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 80],
+      "id": "exec-classifier-001",
+      "name": "Run Interview Guide"
     },
     {
       "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Send a polite rejection email to a candidate whose profile does not match the job requirements. Requires: recipient_email, candidate_name, role_applied_for",
-        "sendTo": "={{ $fromAI('recipient_email', 'Email address of the candidate to send rejection to', 'string') }}",
-        "subject": "Sorry, this role isn't the right fit",
+        "method": "POST",
+        "url": "={{ $vars.BACKEND_URL || 'https://your-prepai-backend.onrender.com' }}/api/webhook/result",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profile_id: $('Standardize Input').item.json.profile_id, qualified: true, reason: $('Qualify Candidate').item.json.message.content }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 80],
+      "id": "http-callback-qualified-001",
+      "name": "Callback - Qualified",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Standardize Input').item.json.candidate_email }}",
+        "subject": "=Your application for the {{ $('Standardize Input').item.json.role }} position",
         "emailType": "text",
-        "message": "=Hi {{ $fromAI('candidate_name', 'Name of the candidate', 'string', 'there') }},\n\nThanks for sharing the {{ $fromAI('role_applied_for', 'Role the candidate applied for', 'string', 'position') }} role. I'm sorry, but this position isn't the right fit.\n\nPlease feel free to send any other openings that better match your background, and I'll be happy to generate a tailored set of prep questions for you.\n\nBest Regards,\nAbhikalp Srivastava\nOwner, Interview Prep Generator",
+        "message": "=Hi {{ $('Standardize Input').item.json.candidate_name }},\n\nThank you for submitting your details for the {{ $('Standardize Input').item.json.role }} position.\n\nAfter reviewing your profile against the job requirements, I'm afraid this particular role isn't the right fit at this time.\n\nIf you come across other openings that better match your background, feel free to submit again — I'd be happy to generate a tailored prep guide for you.\n\nAll the best with your job search!\n\nBest regards,\nAbhikalp Srivastava\nInterview Prep Assistant",
         "options": {}
       },
-      "type": "n8n-nodes-base.gmailTool",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [
-        944,
-        224
-      ],
-      "id": "10567459-742d-4961-a10e-1de114ec249e",
-      "name": "rejection_mail",
+      "position": [960, 360],
+      "id": "gmail-rejection-001",
+      "name": "Send Rejection Email",
       "webhookId": "090a198d-3279-4067-b3a5-a7785a49fce2",
       "credentials": {
         "gmailOAuth2": {
@@ -156,183 +214,92 @@
     },
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-5-mini"
-        },
-        "builtInTools": {},
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [
-        688,
-        224
-      ],
-      "id": "76225764-a138-41de-a68e-d923192536dd",
-      "name": "OpenAI Chat Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "jSTot0m8NRHUoumT",
-          "name": "n8n free OpenAI API credits"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Analyze this candidate submission:\n\nCandidate Name: {{ $('Webhook Submission').item.json.body['Your name'] }}\nEmail: {{ $('Webhook Submission').item.json.body['Email'] }}\nRole: {{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }}\n\nJob Description Analysis:\n{{ $('HTTP Request').item.json.answer }}\n\nCandidate Resume:\n{{ $('Webhook Submission').item.json.body['Resume text'] }}\n\nAdditional Notes:\n{{ $('Webhook Submission').item.json.body['Additional notes'] }}\n\nDetermine if this candidate is qualified for the role and take appropriate action.",
+        "method": "POST",
+        "url": "={{ $vars.BACKEND_URL || 'https://your-prepai-backend.onrender.com' }}/api/webhook/result",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profile_id: $('Standardize Input').item.json.profile_id, qualified: false, reason: $('Qualify Candidate').item.json.message.content, email_sent: false }) }}",
         "options": {
-          "systemMessage": "You are an inbound interview qualification agent. Your job is to analyze the candidate submission and decide whether they are qualified to receive personalized interview questions.\n\nYou will receive:\n- candidate_name: The applicant's name\n- candidate_email: Their email address\n- role_applied_for: The job title they're applying for\n- job_description: Detailed analysis of the job requirements\n- candidate_resume: Their full resume text\n- additional_notes: Any extra information they provided\n\nYour task:\n1. Compare the candidate's resume against the job description requirements\n2. Determine if their skills and experience align well with the role\n3. If qualified (good match) → Call the candidate_qualified tool with ALL the candidate data\n4. If not qualified (poor match) → Call the rejection_mail tool\n\nWhen calling rejection_mail, you must provide: recipient_email (the candidate's email), candidate_name (their name), and role_applied_for (the job title).\n\nBe generous in your assessment - if the candidate has relevant experience in the field, consider them qualified."
+          "timeout": 10000
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        744,
-        0
-      ],
-      "id": "a7c9f1c4-9c6e-4bb2-b1ff-08f5a921bd47",
-      "name": "AI Agent"
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "interview-prep",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        16,
-        0
-      ],
-      "id": "a2ac17f4-1e14-4e4a-860a-12b7c8b5cf07",
-      "name": "Webhook Submission",
-      "webhookId": "b6603404-e2a5-4b50-b5e9-3c88eb753f2f"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "candidate_name",
-              "value": "={{ $('Webhook Submission').item.json.body['Your name'] }}",
-              "type": "string"
-            },
-            {
-              "id": "id-2",
-              "name": "candidate_email",
-              "value": "={{ $('Webhook Submission').item.json.body['Email'] }}",
-              "type": "string"
-            },
-            {
-              "id": "id-3",
-              "name": "role_applied_for",
-              "value": "={{ $('Webhook Submission').item.json.body['Role you\\'re applying for'] }}",
-              "type": "string"
-            },
-            {
-              "id": "id-4",
-              "name": "job_description",
-              "value": "={{ $('HTTP Request').item.json.answer }}",
-              "type": "string"
-            },
-            {
-              "id": "id-5",
-              "name": "candidate_resume",
-              "value": "={{ $('Webhook Submission').item.json.body['Resume text'] }}",
-              "type": "string"
-            },
-            {
-              "id": "id-6",
-              "name": "additional_notes",
-              "value": "={{ $('Webhook Submission').item.json.body['Additional notes'] }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "2514e139-3299-4f39-9e87-1dca388f483a",
-      "name": "Prepare Agent Input",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        464,
-        0
-      ]
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 360],
+      "id": "http-callback-rejected-001",
+      "name": "Callback - Rejected",
+      "continueOnFail": true
     }
   ],
   "pinData": {},
   "connections": {
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Prepare Agent Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "candidate_qualified": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "rejection_mail": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook Submission": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Standardize Input",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent": {
-      "main": [
-        []
-      ]
-    },
-    "Prepare Agent Input": {
+    "Standardize Input": {
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Qualify Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualify Candidate": {
+      "main": [
+        [
+          {
+            "node": "Candidate Qualified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Qualified?": {
+      "main": [
+        [
+          {
+            "node": "Run Interview Guide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Interview Guide": {
+      "main": [
+        [
+          {
+            "node": "Callback - Qualified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection Email": {
+      "main": [
+        [
+          {
+            "node": "Callback - Rejected",
             "type": "main",
             "index": 0
           }

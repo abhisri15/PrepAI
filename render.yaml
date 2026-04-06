@@ -1,14 +1,23 @@
-# Render one-click deploy for PrepAI Backend
-# Use at: https://dashboard.render.com/select-repo?type=blueprint
+# Render one-click deploy for PrepAI
+# Dashboard → New Blueprint → select this repo
 services:
   - type: web
     name: prepai-backend
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT
     envVars:
       - key: LLM_PROVIDER
         value: auto
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DEBUG
+        value: "false"
+      # Set these in the Render dashboard (not in this file):
+      # GROQ_API_KEY, GOOGLE_API_KEY, N8N_PREPAI_WEBHOOK_URL, SECRET_KEY, CORS_ORIGINS
+      #
+      # DATABASE_URL — set to your MySQL connection string, e.g.:
+      #   mysql+pymysql://user:pass@host:3306/prepai
+      # If not set, the app falls back to a local SQLite file (prepai_dev.db).
+      # Render managed PostgreSQL/MySQL: Dashboard → New → Database → copy Internal URL

@@ -14,3 +14,8 @@ htmlcov/
 data/chunks.json
 data/uploads/
 data/feedback.json
+
+# Internal docs (not for public repo)
+ARCHITECTURE.md
+CODE_WALKTHROUGH.md
+FLOW.md

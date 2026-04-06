@@ -1,139 +1,159 @@
 """
-Vector retrieval for RAG.
-Uses TF-IDF cosine similarity fallback (no external deps).
-FAISS optional if faiss-cpu installed.
-"""
-import json
-from pathlib import Path
+Document retrieval using TF-IDF cosine similarity (RAG layer).
 
+Storage backend swapped from JSON file (Phase 1) to MySQL/SQLite via the
+Chunk ORM model (Phase 3). The TF-IDF algorithm is unchanged — all chunks
+are loaded from the DB at query time and the matrix is recomputed in-process.
+
+Known limitation: the vectoriser is rebuilt on every retrieve() call, so
+cost scales with total chunk count. Acceptable for < ~1 000 chunks; Phase 5
+will replace this with ChromaDB persistent vector embeddings.
+"""
 import logging
+
+from config import Config
+from models.chunk import Chunk
+from models.db import db
+
 logger = logging.getLogger("prepai")
 
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-CHUNKS_FILE = DATA_DIR / "chunks.json"
-EMBEDDINGS_DIR = DATA_DIR / "embeddings"
+
+# ── Chunk I/O (DB-backed) ─────────────────────────────────────────────────────
+
+def load_chunks() -> list[dict]:
+    """Return all stored chunks as a list of plain dicts."""
+    return [c.to_dict() for c in Chunk.query.order_by(Chunk.id).all()]
 
 
-def _ensure_data_dir():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
+def save_chunks(chunks: list[dict]):
+    """
+    Replace *all* stored chunks with *chunks*.
+
+    Primarily used in tests to reset retriever state to a known baseline.
+    Prefer add_document() for normal writes.
+    """
+    Chunk.query.delete()
+    for c in chunks:
+        metadata = c.get("metadata") or {}
+        db.session.add(Chunk(
+            chunk_id=c["id"],
+            doc_id=c["doc_id"],
+            text=c["text"],
+            profile_id=metadata.get("profile_id", ""),
+            source=metadata.get("source", ""),
+            metadata_json=metadata,
+        ))
+    db.session.commit()
 
 
-def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
-    """Split text into overlapping chunks."""
+# ── Chunking ──────────────────────────────────────────────────────────────────
+
+def _chunk_text(text: str) -> list[str]:
+    """
+    Split *text* into overlapping word-windows.
+
+    Window size and overlap are read from Config so they can be tuned
+    without modifying this file.
+    """
     words = text.split()
+    size = Config.RAG_CHUNK_SIZE
+    overlap = Config.RAG_CHUNK_OVERLAP
     chunks = []
-    for i in range(0, len(words), chunk_size - overlap):
-        chunk = " ".join(words[i : i + chunk_size])
+    for i in range(0, len(words), size - overlap):
+        chunk = " ".join(words[i: i + size])
         if chunk.strip():
             chunks.append(chunk)
     return chunks
 
 
-def load_chunks() -> list[dict]:
-    """Load stored chunks from disk."""
-    _ensure_data_dir()
-    if not CHUNKS_FILE.exists():
-        return []
-    with open(CHUNKS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+# ── Indexing ──────────────────────────────────────────────────────────────────
 
-
-def save_chunks(chunks: list[dict]):
-    """Persist chunks to disk."""
-    _ensure_data_dir()
-    with open(CHUNKS_FILE, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, indent=2)
-
-
-def add_document(doc_id: str, text: str, metadata: dict = None):
+def add_document(doc_id: str, text: str, metadata: dict = None) -> int:
     """
-    Add document to retrieval index.
-    Chunks text, stores with metadata.
+    Chunk *text* and persist to the profile_chunks table.
+
+    Returns the number of new chunks added.
     """
-    chunks = load_chunks()
+    metadata = metadata or {}
+    profile_id = metadata.get("profile_id", "")
+    source = metadata.get("source", "")
+
     new_chunks = _chunk_text(text)
-    for i, c in enumerate(new_chunks):
-        chunks.append({
-            "id": f"{doc_id}_{i}",
-            "doc_id": doc_id,
-            "text": c,
-            "metadata": metadata or {},
-        })
-    save_chunks(chunks)
-    logger.info("Added document %s: %d chunks", doc_id, len(new_chunks))
+    for i, chunk_text in enumerate(new_chunks):
+        db.session.add(Chunk(
+            chunk_id=f"{doc_id}_{i}",
+            doc_id=doc_id,
+            text=chunk_text,
+            profile_id=profile_id,
+            source=source,
+            metadata_json=metadata,
+        ))
+    db.session.commit()
+    logger.info("Indexed document '%s': %d chunks", doc_id, len(new_chunks))
     return len(new_chunks)
 
 
-def retrieve(query: str, top_k: int = 3) -> list[dict]:
+# ── Retrieval ─────────────────────────────────────────────────────────────────
+
+def retrieve(query: str, top_k: int = Config.RAG_TOP_K) -> list[dict]:
     """
-    Retrieve top_k most relevant chunks using TF-IDF cosine similarity.
-    Returns list of {text, metadata, score}.
+    Return the *top_k* most relevant chunks for *query* using TF-IDF cosine similarity.
+
+    Falls back to simple lexical overlap if sklearn is unavailable.
+    Each result dict has keys: text, metadata, score.
     """
     chunks = load_chunks()
     if not chunks:
         return []
 
-    # Import heavy ML deps lazily so app startup stays fast and robust in cloud runtimes.
     try:
         import numpy as np
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
 
         texts = [c["text"] for c in chunks]
-        vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
-        tfidf = vectorizer.fit_transform(texts)
-        q_vec = vectorizer.transform([query])
-        sims = cosine_similarity(q_vec, tfidf).flatten()
-        indices = np.argsort(sims)[::-1][:top_k]
-    except (ImportError, ValueError, TypeError) as e:
-        logger.warning("TF-IDF retrieval unavailable, using lexical fallback: %s", e)
-        return _fallback_retrieve(query, chunks, top_k=top_k)
+        vectoriser = TfidfVectorizer(max_features=Config.RAG_MAX_FEATURES, stop_words="english")
+        tfidf_matrix = vectoriser.fit_transform(texts)
+        query_vec = vectoriser.transform([query])
+        scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
+        top_indices = np.argsort(scores)[::-1][:top_k]
 
-    results = []
-    for i in indices:
-        if sims[i] > 0.01:
-            results.append({
-                "text": chunks[i]["text"],
-                "metadata": chunks[i].get("metadata", {}),
-                "score": float(sims[i]),
-            })
-    return results
+    except (ImportError, ValueError, TypeError) as exc:
+        logger.warning("TF-IDF retrieval unavailable, falling back to lexical search: %s", exc)
+        return _lexical_fallback(query, chunks, top_k)
+
+    return [
+        {"text": chunks[i]["text"], "metadata": chunks[i].get("metadata", {}), "score": float(scores[i])}
+        for i in top_indices
+        if scores[i] > Config.RAG_MIN_SIMILARITY
+    ]
 
 
-def _fallback_retrieve(query: str, chunks: list[dict], top_k: int = 3) -> list[dict]:
-    """Simple lexical fallback when sklearn/scipy is unavailable."""
+def _lexical_fallback(query: str, chunks: list[dict], top_k: int) -> list[dict]:
+    """Simple term-frequency fallback when sklearn is unavailable."""
     terms = [t for t in query.lower().split() if t]
     if not terms:
         return []
 
-    results = []
-    for c in chunks:
-        text = (c.get("text") or "").lower()
+    scored = []
+    for chunk in chunks:
+        text = (chunk.get("text") or "").lower()
         score = sum(text.count(term) for term in terms)
         if score > 0:
-            results.append({
-                "text": c.get("text", ""),
-                "metadata": c.get("metadata", {}),
-                "score": float(score),
-            })
+            scored.append({"text": chunk["text"], "metadata": chunk.get("metadata", {}), "score": float(score)})
 
-    results.sort(key=lambda x: x["score"], reverse=True)
-    results = results[:top_k]
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    top = scored[:top_k]
 
-    if not results:
-        return []
+    if top:
+        max_score = max(r["score"] for r in top) or 1.0
+        for r in top:
+            r["score"] = r["score"] / max_score
 
-    max_score = max(r["score"] for r in results) or 1.0
-    for r in results:
-        r["score"] = float(r["score"] / max_score)
-
-    return results
+    return top
 
 
-def get_context_for_query(query: str, top_k: int = 3) -> str:
-    """Return concatenated context string for RAG prompts."""
+def get_context_for_query(query: str, top_k: int = Config.RAG_TOP_K) -> str:
+    """Return a concatenated context string suitable for injecting into a prompt."""
     results = retrieve(query, top_k=top_k)
-    if not results:
-        return ""
     return "\n\n---\n\n".join(r["text"] for r in results)

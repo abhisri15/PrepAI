@@ -125,3 +125,13 @@ export async function getProfile(profileId) {
   if (!r.ok) throw new Error(await parseError(r))
   return r.json()
 }
+
+export async function getAtsScore(profileId) {
+  return postJson(apiUrl('/api/ats-score'), { profile_id: profileId })
+}
+
+export async function getConversations(profileId, limit = 50) {
+  const r = await fetch(apiUrl(`/api/conversations/${encodeURIComponent(profileId)}?limit=${limit}`))
+  if (!r.ok) throw new Error(await parseError(r))
+  return r.json()
+}
